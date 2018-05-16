@@ -1,0 +1,3 @@
+# clake
+
+Clojure make.
