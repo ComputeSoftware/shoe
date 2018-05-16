@@ -1,4 +1,5 @@
 (ns clake-cli.io
+  (:refer-clojure :exclude [exists?])
   (:require
     ["fs" :as fs]
     [cljs.tools.reader.edn :as edn]))
