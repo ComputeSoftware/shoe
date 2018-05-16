@@ -1,0 +1,5 @@
+{:lein   true
+ :nrepl  {:port 7888}
+ :builds {:script {:target    :node-script
+                   :main      clake-cli.core/-main
+                   :output-to "build/clake.js"}}}

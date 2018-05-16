@@ -1,0 +1,8 @@
+.nrepl-port
+.idea
+*.iml
+build
+.shadow-cljs
+node_modules
+target
+.cpcache
