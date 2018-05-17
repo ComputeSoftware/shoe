@@ -47,7 +47,7 @@
             {:extra-deps {'clake-tasks (if local?
                                          {:local/root "../tasks"}
                                          {:git/url   "git@github.com:ComputeSoftware/clake.git"
-                                          :sha       "8630a013cd299a838da814ea06376edc771d8fe2"
+                                          :sha       "da722e5bdc8c679b07e05a256717c6c57a5ed4f3"
                                           :deps/root "tasks"})}}))
 
 (defn full-deps-edn
