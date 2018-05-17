@@ -9,14 +9,14 @@
     [clake-cli.macros :as macros]))
 
 (def config-name "clake.edn")
-(def jvm-entrypoint-ns 'clake-cli.clj-entrypoint)
+(def jvm-entrypoint-ns 'clake-tasks.script.entrypoint)
+(def clake-jvm-deps-alias :clake-jvm-deps)
 (macros/def-edn-file clake-deps-edn "deps.edn")
 
 (def cli-options
   ;; An option with a required argument
-  [["-h" "--help"]])
-
-;; def the core deps here...
+  [["-h" "--help"]
+   [nil "--local-tasks" "Use local tasks dep for clake-tasks."]])
 
 ;; https://nodejs.org/api/child_process.html#child_process_child_process_execsync_command_options
 (defn exec-sync
@@ -39,22 +39,16 @@
   (when (io/exists? config-path)
     (io/slurp-edn config-path)))
 
-;; we'll eventually need to start a jvm to get classpath and to launch the REPL
-;; https://github.com/clojure/brew-install/blob/1.9.0/src/main/resources/clojure
-;; clojure.main options: https://clojure.org/reference/repl_and_main
-;; also need to launch an nrepl. may need a config option for that
-(defn start-jvm
-  []
-  )
-
-(defn clake-core-deps
-  [])
-
-(defn add-dev-deps
-  "Adds `base-dev-deps` to your deps.edn. Will only add the dependency if it is
-  not already in your deps."
-  [deps-edn]
-  (assoc-in deps-edn [:aliases :clake-dev] (get-in clake-deps-edn [:aliases :clj-entrypoint])))
+(defn with-clake-deps
+  "Add the deps Clake needs to start tasks to the alias `clake-jvm-deps-alias`."
+  [deps-edn local?]
+  (assoc-in deps-edn
+            [:aliases clake-jvm-deps-alias]
+            {:extra-deps {'clake-tasks (if local?
+                                         {:local/root "../tasks"}
+                                         {:git/url   "https://github.com/ComputeSoftware/clake.git"
+                                          :sha       "54f8afd1284183b96d9d95a2aab793b0a38894b6"
+                                          :deps/root "tasks"})}}))
 
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
@@ -66,13 +60,6 @@
         cmd (str "clj -Sdeps " deps " -e '" code "'")]
     (exec-sync-edn cmd)))
 
-(defn clake-jvm-classpath
-  "Returns the JVM classpath for starting a Clake task."
-  []
-  (let [deps-edn (full-deps-edn)
-        deps-edn-with-dev-deps (add-dev-deps deps-edn)]
-    (str/trim-newline (.toString (exec-sync (str "clj -Sdeps '" deps-edn-with-dev-deps "' -Spath"))))))
-
 (defn parse-cli-opts
   [args]
   (cli/parse-opts args cli-options :in-order true))
@@ -80,12 +67,14 @@
 (defn validate-args
   [args]
   (let [{:keys [options arguments errors summary]} (parse-cli-opts args)
-        task-cmd (first arguments)]
+        task-name (first arguments)]
     (cond
       (:help options)
       {:exit-message "Clake Help." :ok? true}
-      (str/blank? task-cmd) {:exit-message "Task cannot be blank." :ok? false}
-      :else {:task-cmd task-cmd})))
+      (str/blank? task-name) {:exit-message "Task cannot be blank." :ok? false}
+      :else {:task-name    task-name
+             :task-args    (rest arguments)
+             :local-tasks? (:local-tasks options)})))
 
 (defn exit
   [status msg]
@@ -93,21 +82,22 @@
   (process/exit status))
 
 (defn run-task
-  [task-cmd]
-  ;; start jvm with cmd string
-  (let [classpath (clake-jvm-classpath)
-        cmd (str "clj -Scp " classpath " -m " jvm-entrypoint-ns " " task-cmd)]
-    (println cmd)
+  [{:keys [task-name task-args local-tasks?]}]
+  (let [deps-edn (with-clake-deps (full-deps-edn) local-tasks?)
+        data {:config    {}
+              :task-name task-name
+              :task-args task-args}
+        aliases [clake-jvm-deps-alias]
+        cmd (str "clj -A" (str/join aliases) " "
+                 "-Sdeps '" deps-edn "' "
+                 "-m " jvm-entrypoint-ns " "
+                 "'" data "'")]
+    ;(println cmd)
     (exec-sync cmd {:stdio "inherit"})))
-
-;; 1. parse opts
-;; 2. load config
-;; 3. start JVM with classpath
-;; 4. run task -main function
 
 (defn -main
   [& args]
-  (let [{:keys [ok? exit-message task-cmd]} (validate-args args)]
-    (if task-cmd
-      (run-task task-cmd)
+  (let [{:keys [ok? exit-message task-name] :as result} (validate-args args)]
+    (if task-name
+      (run-task result)
       (exit (if ok? 0 1) exit-message))))

@@ -1,3 +1,5 @@
 {:nrepl        {:port-file ".nrepl-port"}
  ;; list of tasks to export as top level tasks
- :export-tasks []}
+ :export-tasks []
+ :task-aliases {clake-cli.built-in.nrepl #{}}
+ :task-opts    {repl {}}}
