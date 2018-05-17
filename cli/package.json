@@ -1,4 +1,5 @@
 {
+  "name": "clake",
   "devDependencies": {
     "shadow-cljs": "2.3.21"
   }

@@ -1,4 +1,5 @@
 (ns clake-cli.core
+  (:require-macros clake-cli.macros)
   (:require
     ["child_process" :as child-proc]
     ["process" :as process]
@@ -12,11 +13,25 @@
   ;; An option with a required argument
   [["-h" "--help"]])
 
+(clake-cli.macros/def-edn-file core-deps "../../deps.edn")
+
+;; def the core deps here...
+
 ;; https://nodejs.org/api/child_process.html#child_process_child_process_execsync_command_options
 (defn exec-sync
   "Executes a command synchronously and sends the output to the parent process."
+  ([command] (exec-sync command nil))
+  ([command options]
+   (child-proc/execSync command (clj->js (merge {:stdio "pipe"}
+                                                options)))))
+
+(defn exec-sync-edn
   [command]
-  (child-proc/execSync command #{:stdio "inherit"}))
+  (edn/read-string (.toString (exec-sync command))))
+
+(defn stringify-code
+  [& code]
+  (str/join " " code))
 
 (defn load-config
   [config-path]
@@ -31,20 +46,31 @@
   []
   )
 
-;; call tools-deps to get the jvm classpath
-(defn tools-deps-jvm-classpath
+(defn clake-core-deps
   [])
 
-(def repl-deps
-  '[[org.clojure/tools.nrepl "0.2.12"]])
+(defn add-dev-deps
+  "Adds `base-dev-deps` to your deps.edn. Will only add the dependency if it is
+  not already in your deps."
+  [deps-edn]
+  (assoc-in deps-edn [:aliases :clake-dev] {:extra-deps '{org.clojure/tools.nrepl {:mvn/version "0.2.12"}}}))
 
-(defn start-repl
+(defn full-deps-edn
+  "Returns the fully merged deps.edn as EDN."
   []
-  (let [start-repl '((require '[clojure.tools.nrepl.server])
-                      (defonce server (clojure.tools.nrepl.server/start-server :port 7889))
-                      (println (str "nREPL server started on port " (:port server) " on host 127.0.0.1")))
-        cmd (str "clj -e \"" (str/join " " start-repl) "\" -r")]
-    (exec-sync cmd)))
+  (let [config-files (:config-files (exec-sync-edn "clj -Sdescribe"))
+        deps "'{:deps {org.clojure/tools.deps.alpha {:mvn/version \"0.5.435\"}}}'"
+        code (str/join " " ['(require '[clojure.tools.deps.alpha.reader :as reader])
+                            (list 'reader/read-deps config-files)])
+        cmd (str "clj -Sdeps " deps " -e '" code "'")]
+    (exec-sync-edn cmd)))
+
+(defn clake-jvm-classpath
+  "Returns the JVM classpath for starting a Clake task."
+  []
+  (let [deps-edn (full-deps-edn)
+        deps-edn-with-dev-deps (add-dev-deps deps-edn)]
+    (str/trim-newline (.toString (exec-sync (str "clj -Sdeps '" deps-edn-with-dev-deps "' -Spath"))))))
 
 (defn parse-cli-opts
   [args]
@@ -52,15 +78,27 @@
 
 (defn validate-args
   [args]
-  (let [{:keys [options arguments errors summary]} (parse-cli-opts args)]
+  (let [{:keys [options arguments errors summary]} (parse-cli-opts args)
+        task-cmd (first arguments)]
     (cond
       (:help options)
-      {:exit-message "" :ok? true})))
+      {:exit-message "Clake Help." :ok? true}
+      (str/blank? task-cmd) {:exit-message "Task cannot be blank." :ok? false}
+      :else {:task-cmd task-cmd})))
 
 (defn exit
   [status msg]
   (println msg)
   (process/exit status))
+
+(defn run-task
+  [task-cmd]
+  ;; start jvm with cmd string
+  (let [classpath (clake-jvm-classpath)]
+    (println "classpath: " classpath)
+    (println (str "clj -Scp " classpath " -m clake.core " task-cmd))
+    (exec-sync (str "clj -Scp " classpath " -m clake.core " task-cmd)
+               {:stdio "inherit"})))
 
 ;; 1. parse opts
 ;; 2. load config
@@ -69,4 +107,8 @@
 
 (defn -main
   [& args]
-  (validate-args args))
+  (println core-deps)
+  #_(let [{:keys [ok? exit-message task-cmd]} (validate-args args)]
+    (if task-cmd
+      (run-task task-cmd)
+      (exit (if ok? 0 1) exit-message))))

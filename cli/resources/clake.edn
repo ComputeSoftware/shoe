@@ -1,1 +1,2 @@
-{:nrepl {:port-file ".nrepl-port"}}
+{:nrepl     {:port-file ".nrepl-port"}
+ :task-dirs #{}}
