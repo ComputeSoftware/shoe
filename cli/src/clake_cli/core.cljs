@@ -46,7 +46,7 @@
             [:aliases clake-jvm-deps-alias]
             {:extra-deps {'clake-tasks (if local?
                                          {:local/root "../tasks"}
-                                         {:git/url   "https://github.com/ComputeSoftware/clake.git"
+                                         {:git/url   "git@github.com:ComputeSoftware/clake.git"
                                           :sha       "8630a013cd299a838da814ea06376edc771d8fe2"
                                           :deps/root "tasks"})}}))
 
