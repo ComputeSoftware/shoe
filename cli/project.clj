@@ -8,4 +8,4 @@
                  [org.clojure/clojurescript "1.10.217"]
                  [org.clojure/tools.nrepl "0.2.13"]
                  [org.clojure/tools.cli "0.3.7"]]
-  :source-paths ["src"])
+  :source-paths ["src" "dev"])

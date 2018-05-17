@@ -1,2 +1,3 @@
-{:nrepl     {:port-file ".nrepl-port"}
- :task-dirs #{}}
+{:nrepl        {:port-file ".nrepl-port"}
+ ;; list of tasks to export as top level tasks
+ :export-tasks []}

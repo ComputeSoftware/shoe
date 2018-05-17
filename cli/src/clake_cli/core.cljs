@@ -1,19 +1,20 @@
 (ns clake-cli.core
-  (:require-macros clake-cli.macros)
   (:require
     ["child_process" :as child-proc]
     ["process" :as process]
     [clojure.string :as str]
     [cljs.tools.reader.edn :as edn]
     [cljs.tools.cli :as cli]
-    [clake-cli.io :as io]))
+    [clake-cli.io :as io]
+    [clake-cli.macros :as macros]))
 
 (def config-name "clake.edn")
+(def jvm-entrypoint-ns 'clake-cli.clj-entrypoint)
+(macros/def-edn-file clake-deps-edn "deps.edn")
+
 (def cli-options
   ;; An option with a required argument
   [["-h" "--help"]])
-
-(clake-cli.macros/def-edn-file core-deps "../../deps.edn")
 
 ;; def the core deps here...
 
@@ -53,7 +54,7 @@
   "Adds `base-dev-deps` to your deps.edn. Will only add the dependency if it is
   not already in your deps."
   [deps-edn]
-  (assoc-in deps-edn [:aliases :clake-dev] {:extra-deps '{org.clojure/tools.nrepl {:mvn/version "0.2.12"}}}))
+  (assoc-in deps-edn [:aliases :clake-dev] (get-in clake-deps-edn [:aliases :clj-entrypoint])))
 
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
@@ -94,11 +95,10 @@
 (defn run-task
   [task-cmd]
   ;; start jvm with cmd string
-  (let [classpath (clake-jvm-classpath)]
-    (println "classpath: " classpath)
-    (println (str "clj -Scp " classpath " -m clake.core " task-cmd))
-    (exec-sync (str "clj -Scp " classpath " -m clake.core " task-cmd)
-               {:stdio "inherit"})))
+  (let [classpath (clake-jvm-classpath)
+        cmd (str "clj -Scp " classpath " -m " jvm-entrypoint-ns " " task-cmd)]
+    (println cmd)
+    (exec-sync cmd {:stdio "inherit"})))
 
 ;; 1. parse opts
 ;; 2. load config
@@ -107,8 +107,7 @@
 
 (defn -main
   [& args]
-  (println core-deps)
-  #_(let [{:keys [ok? exit-message task-cmd]} (validate-args args)]
+  (let [{:keys [ok? exit-message task-cmd]} (validate-args args)]
     (if task-cmd
       (run-task task-cmd)
       (exit (if ok? 0 1) exit-message))))

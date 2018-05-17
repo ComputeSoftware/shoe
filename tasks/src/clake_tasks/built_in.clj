@@ -1,4 +1,4 @@
-(ns clake.built-in
+(ns clake-tasks.built-in
   (:require
     [clojure.main :as main]
     [clojure.tools.nrepl.server :as nrepl-server]))
