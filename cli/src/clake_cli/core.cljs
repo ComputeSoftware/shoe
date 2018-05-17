@@ -95,9 +95,19 @@
     ;(println cmd)
     (exec-sync cmd {:stdio "inherit"})))
 
+(defn clj-installed?
+  []
+  (try
+    (some? (exec-sync "clj --help"))
+    (catch js/Error _ false)))
+
 (defn -main
   [& args]
-  (let [{:keys [ok? exit-message task-name] :as result} (validate-args args)]
-    (if task-name
-      (run-task result)
-      (exit (if ok? 0 1) exit-message))))
+  (if (clj-installed?)
+    (let [{:keys [ok? exit-message task-name] :as result} (validate-args args)]
+      (if task-name
+        (run-task result)
+        (exit (if ok? 0 1) exit-message)))
+    (exit 1 (str "Clojure CLI tools are not installed or globally accessible.\n"
+                 "Install guide:\n  "
+                 "https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"))))
