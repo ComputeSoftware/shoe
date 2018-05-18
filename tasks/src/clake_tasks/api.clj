@@ -1,9 +1,11 @@
 (ns clake-tasks.api
   (:require
-    [clojure.spec.alpha :as s]))
+    [clojure.spec.alpha :as s]
+    [clake-tasks.util :as util]))
 
 (s/def :clake/cli-opts vector?)
-(s/def ::attr-map (s/keys :req [:clake/cli-opts]))
+(s/def :clake/shutdown-fn fn?)
+(s/def ::attr-map (s/keys :req [:clake/cli-opts] :opt [:clake/shutdown-fn]))
 (s/def ::deftask-args (s/cat :docstring (s/? string?)
                              :attr-map ::attr-map
                              :argv vector?
@@ -12,8 +14,12 @@
 (defmacro deftask
   [task-name & args]
   (let [{:keys [docstring attr-map argv body]} (s/conform ::deftask-args args)]
-    `(defn ~task-name
-       ~@(when docstring [docstring])
-       ~(select-keys attr-map [:clake/cli-opts])
-       ~argv
-       ~@body)))
+    (let [shutdown-fn (:clake/shutdown-fn attr-map)]
+      `(do
+         ~@(when shutdown-fn
+             [`(util/add-shutdown-hook ~shutdown-fn)])
+         (defn ~task-name
+           ~@(when docstring [docstring])
+           ~(select-keys attr-map [:clake/cli-opts])
+           ~argv
+           ~@body)))))

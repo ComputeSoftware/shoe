@@ -44,12 +44,6 @@
   ;; this is not used right now
   {:status status})
 
-;; TODO: need a way for tasks to cleanup after themselves...
-(defn add-shutdown-hook
-  []
-  (.addShutdownHook (Runtime/getRuntime) (Thread. (fn []
-                                                    ))))
-
 (defn -main
   [& args]
   (let [data (edn/read-string (first args))

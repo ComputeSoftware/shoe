@@ -1,17 +1,21 @@
 (ns clake-tasks.built-in
   (:require
     [clojure.main :as main]
+    [clojure.java.io :as io]
     [clojure.tools.nrepl.server :as nrepl-server]
-    [clake-tasks.api :as api]))
+    [clake-tasks.api :as api])
+  (:import (java.nio.file Files)))
 
 (api/deftask nrepl
   "Task that starts an nREPL server.
 
   Note: This is a blocking task."
-  {:clake/cli-opts [["-p" "--port PORT" "Port to start nREPL server on."
-                     :default 0
-                     :parse-fn #(Integer/parseInt %)]
-                    ["-l" "--lein-port" "Spit the port to .nrepl-port."]]}
+  {:clake/cli-opts    [["-p" "--port PORT" "Port to start nREPL server on."
+                        :default 0
+                        :parse-fn #(Integer/parseInt %)]
+                       ["-l" "--lein-port" "Spit the port to .nrepl-port."]]
+   :clake/shutdown-fn (fn []
+                        (Files/deleteIfExists (.toPath (io/file ".nrepl-port"))))}
   [{:keys [port lein-port] :as task-opts}]
   (let [#_#_repl (main/repl)
         server (nrepl-server/start-server :port port)
