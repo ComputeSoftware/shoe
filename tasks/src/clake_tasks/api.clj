@@ -4,7 +4,7 @@
     [clake-tasks.util :as util]))
 
 (s/def :clake/cli-opts vector?)
-(s/def :clake/shutdown-fn fn?)
+(s/def :clake/shutdown-fn any?)
 (s/def ::attr-map (s/keys :req [:clake/cli-opts] :opt [:clake/shutdown-fn]))
 (s/def ::deftask-args (s/cat :docstring (s/? string?)
                              :attr-map ::attr-map
