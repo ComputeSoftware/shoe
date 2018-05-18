@@ -3,9 +3,9 @@
     [clojure.spec.alpha :as s]
     [clake-tasks.util :as util]))
 
-(s/def :clake/cli-opts vector?)
+(s/def :clake/cli-specs vector?)
 (s/def :clake/shutdown-fn any?)
-(s/def ::attr-map (s/keys :req [:clake/cli-opts] :opt [:clake/shutdown-fn]))
+(s/def ::attr-map (s/keys :req [:clake/cli-specs] :opt [:clake/shutdown-fn]))
 (s/def ::deftask-args (s/cat :docstring (s/? string?)
                              :attr-map ::attr-map
                              :argv vector?
@@ -20,6 +20,6 @@
              [`(util/add-shutdown-hook ~shutdown-fn)])
          (defn ~task-name
            ~@(when docstring [docstring])
-           ~(select-keys attr-map [:clake/cli-opts])
+           ~(select-keys attr-map [:clake/cli-specs])
            ~argv
            ~@body)))))
