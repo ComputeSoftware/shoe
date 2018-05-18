@@ -16,7 +16,8 @@
 (def cli-options
   ;; An option with a required argument
   [["-h" "--help"]
-   [nil "--local-tasks" "Use local tasks dep for clake-tasks."]])
+   [nil "--local-tasks" "Use local tasks dep for clake-tasks."]
+   [nil "--tasks-sha" "The git SHA to use for the clake-tasks dependency."]])
 
 ;; https://nodejs.org/api/child_process.html#child_process_child_process_execsync_command_options
 (defn exec-sync
@@ -41,13 +42,13 @@
 
 (defn with-clake-deps
   "Add the deps Clake needs to start tasks to the alias `clake-jvm-deps-alias`."
-  [deps-edn local?]
+  [deps-edn {:keys [local-tasks tasks-sha]}]
   (assoc-in deps-edn
             [:aliases clake-jvm-deps-alias]
-            {:extra-deps {'clake-tasks (if local?
+            {:extra-deps {'clake-tasks (if local-tasks
                                          {:local/root "../tasks"}
                                          {:git/url   "git@github.com:ComputeSoftware/clake.git"
-                                          :sha       "da722e5bdc8c679b07e05a256717c6c57a5ed4f3"
+                                          :sha       (or tasks-sha "da722e5bdc8c679b07e05a256717c6c57a5ed4f3")
                                           :deps/root "tasks"})}}))
 
 (defn full-deps-edn
@@ -72,9 +73,10 @@
       (:help options)
       {:exit-message "Clake Help." :ok? true}
       (str/blank? task-name) {:exit-message "Task cannot be blank." :ok? false}
-      :else {:task-name    task-name
-             :task-args    (rest arguments)
-             :local-tasks? (:local-tasks options)})))
+      :else (merge
+              {:task-name task-name
+               :task-args (rest arguments)}
+              options))))
 
 (defn exit
   [status msg]
@@ -82,8 +84,8 @@
   (process/exit status))
 
 (defn run-task
-  [{:keys [task-name task-args local-tasks?]}]
-  (let [deps-edn (with-clake-deps (full-deps-edn) local-tasks?)
+  [{:keys [task-name task-args] :as options}]
+  (let [deps-edn (with-clake-deps (full-deps-edn) options)
         data {:config    {}
               :task-name task-name
               :task-args task-args}
