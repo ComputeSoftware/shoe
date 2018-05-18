@@ -53,11 +53,11 @@
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
   []
-  (let [config-files (:config-files (exec-sync-edn "clj -Sdescribe"))
+  (let [config-files (:config-files (exec-sync-edn "clojure -Sdescribe"))
         deps "'{:deps {org.clojure/tools.deps.alpha {:mvn/version \"0.5.435\"}}}'"
         code (str/join " " ['(require '[clojure.tools.deps.alpha.reader :as reader])
                             (list 'reader/read-deps config-files)])
-        cmd (str "clj -Sdeps " deps " -e '" code "'")]
+        cmd (str "clojure -Sdeps " deps " -e '" code "'")]
     (exec-sync-edn cmd)))
 
 (defn parse-cli-opts
@@ -88,7 +88,7 @@
               :task-name task-name
               :task-args task-args}
         aliases [clake-jvm-deps-alias]
-        cmd (str "clj -A" (str/join aliases) " "
+        cmd (str "clojure -A" (str/join aliases) " "
                  "-Sdeps '" deps-edn "' "
                  "-m " jvm-entrypoint-ns " "
                  "'" data "'")]
@@ -98,7 +98,7 @@
 (defn clj-installed?
   []
   (try
-    (some? (exec-sync "clj --help"))
+    (some? (exec-sync "clojure --help"))
     (catch js/Error _ false)))
 
 (defn -main
