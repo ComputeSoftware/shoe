@@ -17,7 +17,26 @@
   ;; An option with a required argument
   [["-h" "--help"]
    [nil "--local-tasks" "Use local tasks dep for clake-tasks."]
-   [nil "--tasks-sha" "The git SHA to use for the clake-tasks dependency."]])
+   [nil "--tasks-sha SHA" "The git SHA to use for the clake-tasks dependency."]])
+
+(defn usage-text
+  [options-summary]
+  (->> ["Usage: clake [clake-opt*] [task] [arg*]"
+        ""
+        "Clake is a build tool for Clojure(Script). It uses the Clojure CLI to "
+        "start a JVM."
+        ""
+        "Options:"
+        options-summary
+        ""]
+       ;; it'd be nice to show a list of available tasks but that is only possible
+       ;; if we start a JVM.
+       (str/join "\n")))
+
+(defn error-msg
+  [errors]
+  (str "The following errors occurred while parsing your command:\n\n"
+       (str/join \newline errors)))
 
 ;; https://nodejs.org/api/child_process.html#child_process_child_process_execsync_command_options
 (defn exec-sync
@@ -71,7 +90,9 @@
         task-name (first arguments)]
     (cond
       (:help options)
-      {:exit-message "Clake Help." :ok? true}
+      {:exit-message (usage-text summary) :ok? true}
+      errors
+      {:exit-message (error-msg errors) :ok? false}
       (str/blank? task-name) {:exit-message "Task cannot be blank." :ok? false}
       :else (merge
               {:task-name task-name
