@@ -86,18 +86,16 @@
 
 (defn validate-args
   [args]
-  (let [{:keys [options arguments errors summary]} (parse-cli-opts args)
-        task-name (first arguments)]
+  (let [{:keys [options arguments errors summary]} (parse-cli-opts args)]
     (cond
       (:help options)
       {:exit-message (usage-text summary) :ok? true}
       errors
       {:exit-message (error-msg errors) :ok? false}
-      (str/blank? task-name) {:exit-message "Task cannot be blank." :ok? false}
-      :else (merge
-              {:task-name task-name
-               :task-args (rest arguments)}
-              options))))
+      (nil? (first arguments))
+      {:exit-message "Error: Missing task name." :ok? false}
+      :else {:args       arguments
+             :clake-opts options})))
 
 (defn exit
   [status msg]
@@ -105,11 +103,10 @@
   (process/exit status))
 
 (defn run-task
-  [{:keys [task-name task-args] :as options}]
-  (let [deps-edn (with-clake-deps (full-deps-edn) options)
-        data {:config    {}
-              :task-name task-name
-              :task-args task-args}
+  [{:keys [clake-opts] :as entry-map}]
+  (let [deps-edn (with-clake-deps (full-deps-edn) clake-opts)
+        ;; load config call here
+        data (assoc entry-map :config {})
         aliases [clake-jvm-deps-alias]
         cmd (str "clojure -A" (str/join aliases) " "
                  "-Sdeps '" deps-edn "' "
@@ -127,10 +124,10 @@
 (defn -main
   [& args]
   (if (clj-installed?)
-    (let [{:keys [ok? exit-message task-name] :as result} (validate-args args)]
-      (if task-name
-        (run-task result)
-        (exit (if ok? 0 1) exit-message)))
+    (let [{:keys [ok? exit-message] :as result} (validate-args args)]
+      (if exit-message
+        (exit (if ok? 0 1) exit-message)
+        (run-task result)))
     (exit 1 (str "Clojure CLI tools are not installed or globally accessible.\n"
                  "Install guide:\n  "
                  "https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"))))
