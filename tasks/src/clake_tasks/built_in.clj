@@ -6,9 +6,9 @@
     [clojure.pprint :as pprint]
     [clojure.java.io :as io]
     [clojure.tools.nrepl.server :as nrepl-server]
-    [clojure.tools.namespace.find :as ns.find]
     [clake-tasks.api :as api]
-    [pjstadig.humane-test-output :as humane-test])
+    [pjstadig.humane-test-output :as humane-test]
+    [clake-tasks.util :as util])
   (:import (java.nio.file Files)))
 
 (api/deftask nrepl
@@ -40,18 +40,12 @@
   "Run the project's tests."
   {:clake/cli-specs []}
   [{:keys [aliases]} {:clake/keys [deps-edn]}]
-  ;(humane-test/activate!)
-  (let [alias-paths (mapcat :extra-paths (-> deps-edn
-                                             :aliases
-                                             (select-keys aliases)
-                                             vals))
-        paths (set (concat (:paths deps-edn) alias-paths))
-        namespaces (ns.find/find-namespaces (map io/file paths))]
+  (humane-test/activate!)
+  (let [namespaces (util/namespaces-in-project deps-edn aliases)]
     ;; make sure that all namespaces have been loaded
-    ;(apply require namespaces)
-    (println "test")
+    (apply require namespaces)
     ;; run da tests
-    ;(apply clj-test/run-tests namespaces)
+    (apply clj-test/run-tests namespaces)
     ))
 
 (api/deftask aot
