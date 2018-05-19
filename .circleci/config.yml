@@ -8,10 +8,8 @@ defaults: &defaults
     JVM_OPTS: -Xmx3200m
 
 jobs:
-  build:
+  test-cli:
     <<: *defaults
-    docker:
-      - image: circleci/clojure:lein-2.8.1-node
 
     steps:
       - checkout
@@ -20,21 +18,40 @@ jobs:
           key: project
 
       - run: npm install --prefix cli
-      - run: |
-          cd cli
-          ./scripts/release.sh
 
       - save_cache:
           paths:
             - ~/.m2
             - ~/cli/node_modules
           key: project
+
+      - run:
+          name: Test CLI
+          command: |
+            cd cli
+            npx shadow-cljs release test
+
+  build-cli:
+    <<: *defaults
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          key: project
+
+      - run:
+          name: Build CLI
+          command: |
+            cd cli
+            ./scripts/release.sh
+
       - persist_to_workspace:
           root: cli
           paths:
-            - build/*
+            - build
 
-  test:
+  test-tasks:
     <<: *defaults
     steps:
       - checkout
@@ -42,16 +59,18 @@ jobs:
           at: scripts
       - run: |
           cd tasks
-          node ./scripts/build2/clake.js test
+          node ./scripts/build/clake.js test
 
 
 workflows:
   version: 2
   ci-workflow:
     jobs:
-      - build:
+      - test-cli:
           context: clojure-env
-      - test:
+      - build-cli:
+          context: clojure-env
+      - test-tasks:
           context: clojure-env
           requires:
-            - build
+            - build-cli

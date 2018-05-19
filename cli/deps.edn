@@ -1,1 +1,5 @@
-{:deps {org.clojure/clojure {:mvn/version "1.9.0"}} :aliases {:a-b {:extra-deps {org.clojure/tools.nrepl {:mvn/version "0.2.12"}}}}}
+{:deps    {org.clojure/clojure       {:mvn/version "1.9.0"}
+           thheller/shadow-cljs      {:mvn/version "2.3.21"}
+           org.clojure/clojurescript {:mvn/version "1.10.217"}
+           org.clojure/tools.cli     {:mvn/version "0.3.7"}}
+ :aliases {:test {:extra-paths ["test"]}}}

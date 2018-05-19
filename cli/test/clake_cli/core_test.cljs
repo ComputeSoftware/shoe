@@ -1,2 +1,5 @@
 (ns clake-cli.core-test
-  (:require [clojure.test :refer :all]))
+  (:require [cljs.test :refer [deftest is testing]]))
+
+(deftest my-test
+  (is (= 1 1)))

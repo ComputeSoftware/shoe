@@ -1,5 +1,9 @@
-{:lein   true
+{:deps   {:aliases [:test]}
  :nrepl  {:port 7888}
  :builds {:script {:target    :node-script
                    :main      clake-cli.core/-main
-                   :output-to "build/clake.js"}}}
+                   :output-to "build/clake.js"}
+          :test   {:target    :node-test
+                   :output-to "build-test/clake-tests.js"
+                   :ns-regexp "-test$"
+                   :autorun   true}}}
