@@ -33,9 +33,9 @@ jobs:
   test:
     <<: *defaults
     steps:
-      attach_workspace:
-        at: scripts
-      run: node ./scripts/clake.js --help
+      - attach_workspace:
+          at: scripts
+      - run: node ./scripts/clake.js --help
 
 
 workflows:
@@ -46,3 +46,5 @@ workflows:
           context: clojure-env
       - test:
           context: clojure-env
+          requires:
+            - build
