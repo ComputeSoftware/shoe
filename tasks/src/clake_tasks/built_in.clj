@@ -2,6 +2,8 @@
   (:refer-clojure :exclude [test])
   (:require
     [clojure.main :as main]
+    [clojure.test :as clj-test]
+    [clojure.pprint :as pprint]
     [clojure.java.io :as io]
     [clojure.tools.nrepl.server :as nrepl-server]
     [clojure.tools.namespace.find :as ns.find]
@@ -28,17 +30,34 @@
       (spit ".nrepl-port" selected-port))
     @(promise)))
 
+(api/deftask print-context
+  "Pretty prints the current context."
+  {:clake/cli-specs []}
+  [_ context]
+  (pprint/pprint context))
+
 (api/deftask test
   "Run the project's tests."
   {:clake/cli-specs []}
-  [_ _]
+  [{:keys [aliases]} {:clake/keys [deps-edn]}]
   ;(humane-test/activate!)
-  (let []))
+  (let [alias-paths (mapcat :extra-paths (-> deps-edn
+                                             :aliases
+                                             (select-keys aliases)
+                                             vals))
+        paths (set (concat (:paths deps-edn) alias-paths))
+        namespaces (ns.find/find-namespaces (map io/file paths))]
+    ;; make sure that all namespaces have been loaded
+    ;(apply require namespaces)
+    (println "test")
+    ;; run da tests
+    ;(apply clj-test/run-tests namespaces)
+    ))
 
 (api/deftask aot
   "Perform AOT compilation of Clojure namespaces."
   {:clake/cli-specs [["-a" "--all" "Compile all namespaces"]
-                    ["-n" "--namespaces #{sym}" "A set of namespaces to compile."]]}
+                     ["-n" "--namespaces #{sym}" "A set of namespaces to compile."]]}
   [{:keys [all namespaces]} _]
   (println "aot"))
 

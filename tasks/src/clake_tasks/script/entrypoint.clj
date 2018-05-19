@@ -3,6 +3,7 @@
     [clojure.edn :as edn]
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
+    [clake-tasks.specs]
     [clake-tasks.built-in :as built-in]))
 
 (defn exit?
@@ -47,7 +48,7 @@
          tasks []]
     (if (empty? args)
       tasks
-      (let [task-name (first args)]
+      (let [task-name (symbol (first args))]
         (if-let [{:clake-task/keys [cli-specs] :as task-ctx} (get-task-context task-name)]
           (let [{:keys [task-opts next-arguments] :as result} (validate-task-args
                                                                 (rest args)
@@ -55,14 +56,18 @@
             (if (exit? result)
               result
               (recur next-arguments
-                     (conj tasks (assoc task-ctx :clake-task/cli-opts task-opts)))))
+                     (conj tasks (assoc task-ctx :clake-task/name task-name
+                                                 :clake-task/cli-opts task-opts)))))
           {:exit-message (format "Could not find task %s" task-name)
            :ok?          false})))))
 
 (defn run-task
   [context current-task]
-  (let [{task-fn   :clake-task/fn
-         task-opts :clake-task/cli-opts} current-task]
+  (let [{task-fn       :clake-task/fn
+         task-cli-opts :clake-task/cli-opts
+         task-name     :clake-task/name} current-task
+        config-task-opts (get-in context [:clake/config :task-opts task-name])
+        task-opts (merge config-task-opts task-cli-opts)]
     (task-fn task-opts context)))
 
 (defn execute

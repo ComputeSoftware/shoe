@@ -11,13 +11,17 @@
 ;; ==========================
 ;; Task context
 ;; ==========================
+;; task name
+(s/def :clake-task/name symbol?)
 ;; the actual task function
 (s/def :clake-task/fn fn?)
 ;; the tools.cli specs map
 (s/def :clake-task/cli-specs vector?)
 ;; the parsed cli opts map
 (s/def :clake-task/cli-opts map?)
-(s/def :clake/task-context (s/keys :req [:clake-task/fn :clake-task/cli-specs]
+(s/def :clake/task-context (s/keys :req [:clake-task/name
+                                         :clake-task/fn
+                                         :clake-task/cli-specs]
                                    :opt [:clake-task/cli-opts]))
 
 ;; ==========================

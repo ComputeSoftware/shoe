@@ -109,7 +109,7 @@
         context (assoc context :clake/config config
                                :clake/deps-edn deps-edn)
         aliases [clake-jvm-deps-alias]
-        cmd (str "clojure -R" (str/join aliases) " "
+        cmd (str "clojure -A" (str/join aliases) " "
                  "-Sdeps '" deps-edn "' "
                  "-m " jvm-entrypoint-ns " "
                  "'" context "'")]
