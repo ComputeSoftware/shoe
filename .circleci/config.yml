@@ -40,6 +40,8 @@ jobs:
       - restore_cache:
           key: project
 
+      - run: npm install --prefix cli
+
       - run:
           name: Build CLI
           command: |
