@@ -18,7 +18,9 @@ jobs:
           key: project
 
       - run: npm install --prefix cli
-      - run: ./cli/scripts/release.sh
+      - run: |
+          cd cli
+          ./scripts/release.sh
 
       - save_cache:
           paths:
