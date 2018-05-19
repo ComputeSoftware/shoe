@@ -41,8 +41,8 @@ jobs:
       - attach_workspace:
           at: scripts
       - run: |
-        cd tasks
-        node ./scripts/build2/clake.js test
+          cd tasks
+          node ./scripts/build2/clake.js test
 
 
 workflows:
