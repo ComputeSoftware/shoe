@@ -3,6 +3,7 @@
     ["child_process" :as child-proc]
     ["process" :as process]
     [clojure.string :as str]
+    [clojure.set :as sets]
     [cljs.tools.reader.edn :as edn]
     [cljs.tools.cli :as cli]
     [clake-cli.io :as io]
@@ -80,6 +81,18 @@
         cmd (str "clojure -Sdeps " deps " -e '" code "'")]
     (exec-sync-edn cmd)))
 
+(defn aliases-from-config
+  "Returns a set of all aliases set in the `:task-opts` key in the config for the
+  given `task-cli-args`."
+  [task-cli-args config]
+  (let [tasks-in-args (into #{}
+                            (map symbol)
+                            (:arguments (cli/parse-opts task-cli-args [])))]
+    (reduce-kv (fn [all-aliases task-name {:keys [aliases]}]
+                 (if (contains? tasks-in-args task-name)
+                   (sets/union all-aliases (set aliases))
+                   all-aliases)) #{} (:task-opts config))))
+
 (defn parse-cli-opts
   [args]
   (cli/parse-opts args cli-options :in-order true))
@@ -108,7 +121,8 @@
         config (load-config config-name)
         context (assoc context :clake/config config
                                :clake/deps-edn deps-edn)
-        aliases [clake-jvm-deps-alias]
+        aliases (conj (aliases-from-config (:clake/task-cli-args context) config)
+                      clake-jvm-deps-alias)
         cmd (str "clojure -A" (str/join aliases) " "
                  "-Sdeps '" deps-edn "' "
                  "-m " jvm-entrypoint-ns " "
