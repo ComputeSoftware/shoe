@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-shadow-cljs release script
+npx shadow-cljs release script
