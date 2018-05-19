@@ -10,6 +10,8 @@ defaults: &defaults
 jobs:
   build:
     <<: *defaults
+    docker:
+      - image: circleci/clojure:lein-2.8.1-node
 
     steps:
       - checkout
