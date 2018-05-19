@@ -32,14 +32,17 @@ jobs:
       - persist_to_workspace:
           root: cli
           paths:
-            - build
+            - build/*
 
   test:
     <<: *defaults
     steps:
+      - checkout
       - attach_workspace:
           at: scripts
-      - run: node ./scripts/clake.js --help
+      - run: |
+        cd tasks
+        node ./scripts/build2/clake.js test
 
 
 workflows:
