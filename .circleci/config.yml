@@ -1,0 +1,48 @@
+version: 2
+
+defaults: &defaults
+  working_directory: ~/repo
+  docker:
+    - image: circleci/clojure:tools-deps-node
+  environment:
+    JVM_OPTS: -Xmx3200m
+
+jobs:
+  build:
+    <<: *defaults
+
+    steps:
+      - checkout
+      - *profile_install
+
+      - restore_cache:
+          key: project
+
+      - run: npm install --prefix cli
+      - run: ./cli/scripts/release.sh
+
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: project
+      - persist_to_workspace:
+          root: cli
+          paths:
+            - build
+
+  test:
+    <<: *defaults
+    steps:
+      attach_workspace:
+        at: scripts
+      run: node ./scripts/clake.js --help
+
+
+workflows:
+  version: 2
+  ci-workflow:
+    jobs:
+      - build:
+          context: clojure-env
+      - test:
+          context: clojure-env
