@@ -84,4 +84,5 @@ workflows:
       - test-tasks:
           context: clojure-env
           requires:
+            - test-cli
             - build-cli
