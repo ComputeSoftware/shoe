@@ -4,17 +4,14 @@
     [clojure.string :as str]
     [clojure.tools.cli :as cli]
     [clake-tasks.specs]
-    [clake-tasks.built-in :as built-in]))
-
-(defn exit?
-  [x]
-  (some? (:exit-message x)))
+    [clake-tasks.built-in :as built-in]
+    [clake-tasks.api :as api]))
 
 (defn validate-task-args
   [args cli-opts]
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-opts)]
     (if errors
-      {:exit-message (str/join "\n" errors) :ok? false}
+      (api/exit false (str/join "\n" errors))
       {:task-opts      options
        :next-arguments arguments})))
 
@@ -53,13 +50,12 @@
           (let [{:keys [task-opts next-arguments] :as result} (validate-task-args
                                                                 (rest args)
                                                                 cli-specs)]
-            (if (exit? result)
+            (if (api/exit? result)
               result
               (recur next-arguments
                      (conj tasks (assoc task-ctx :clake-task/name task-name
                                                  :clake-task/cli-opts task-opts)))))
-          {:exit-message (format "Could not find task %s" task-name)
-           :ok?          false})))))
+          (api/exit false (format "Could not find task %s" task-name)))))))
 
 (defn run-task
   [context current-task]
@@ -73,26 +69,24 @@
 (defn execute
   [context]
   (let [tasks (parse-tasks context)]
-    ;(prn tasks)
-    (if (exit? tasks)
+    (if (api/exit? tasks)
       tasks
-      (do
-        (loop [tasks tasks]
-          (if (empty? tasks)
-            nil
-            (let [task (first tasks)
-                  _ (run-task (assoc context :clake/next-tasks tasks) task)]
-              (recur (rest tasks)))))
-        {:exit-message nil :ok? true}))))
+      (loop [tasks tasks]
+        (if (empty? tasks)
+          (api/exit true)
+          (let [task (first tasks)
+                result (run-task (assoc context :clake/next-tasks tasks) task)]
+            (if (api/exit? result)
+              result
+              (recur (rest tasks)))))))))
 
 (defn exit
   [status msg]
   (when msg (println msg))
-  ;; this is not used right now
-  {:status status})
+  (System/exit status))
 
 (defn -main
   [& args]
   (let [context (edn/read-string (first args))
-        {:keys [exit-message ok?]} (execute context)]
-    (exit (if ok? 0 1) exit-message)))
+        {:clake-exit/keys [message status]} (execute context)]
+    (exit status message)))

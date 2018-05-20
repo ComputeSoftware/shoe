@@ -46,6 +46,8 @@
 ;; ==========================
 ;; Exit message
 ;; ==========================
-(s/def :exit/exit-message (s/nilable string?))
-(s/def :exit/ok? boolean?)
-(s/def :clake/exit (s/keys :req-un [:exit/exit-message :exit/ok?]))
+(s/def :clake-exit/message (s/nilable string?))
+(s/def :clake-exit/ok? boolean?)
+(s/def :clake-exit/status boolean?)
+(s/def :clake/exit (s/keys :req-un [:clake-exit/status]
+                           :opt-un [:clake-exit/ok? :clake-exit/message]))

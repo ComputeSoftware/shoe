@@ -23,3 +23,18 @@
            ~(select-keys attr-map [:clake/cli-specs])
            ~argv
            ~@body)))))
+
+(defn exit?
+  [x]
+  (some? (:clake-exit/status x)))
+
+(defn exit
+  ([ok?-or-status] (exit ok?-or-status nil))
+  ([ok?-or-status msg]
+   (let [status (if (number? ok?-or-status)
+                  ok?-or-status
+                  (if ok?-or-status 0 1))
+         ok? (= status 0)]
+     (cond-> {:clake-exit/status status
+              :clake-exit/ok?    ok?}
+             msg (assoc :clake-exit/message msg)))))

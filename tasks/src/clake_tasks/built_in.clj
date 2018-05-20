@@ -41,12 +41,12 @@
   {:clake/cli-specs []}
   [{:keys [aliases]} {:clake/keys [deps-edn]}]
   (humane-test/activate!)
-  (let [namespaces (util/namespaces-in-project deps-edn aliases)]
-    ;; make sure that all namespaces have been loaded
-    (apply require namespaces)
-    ;; run da tests
-    (apply clj-test/run-tests namespaces)
-    ))
+  (let [namespaces (util/namespaces-in-project deps-edn aliases)
+        ;; we need to make sure that all namespaces have been loaded
+        _ (apply require namespaces)
+        {:keys [fail]} (apply clj-test/run-tests namespaces)]
+    (when (not= 0 fail)
+      (api/exit false))))
 
 (api/deftask aot
   "Perform AOT compilation of Clojure namespaces."
