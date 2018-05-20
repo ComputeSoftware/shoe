@@ -47,6 +47,15 @@
    (child-proc/execSync command (clj->js (merge {:stdio "pipe"}
                                                 options)))))
 
+(defn spawn-sync
+  ([command args] (spawn-sync command args {}))
+  ([command args options]
+   (let [result (child-proc/spawnSync command (to-array args) (clj->js options))]
+     {:status (.-status result)
+      :out    (.-stdout result)
+      :err    (.-stderr result)
+      :r result})))
+
 (defn exec-sync-edn
   [command]
   (edn/read-string (.toString (exec-sync command))))
@@ -112,7 +121,7 @@
 
 (defn exit
   [status msg]
-  (println msg)
+  (when msg (println msg))
   (process/exit status))
 
 (defn run-task
@@ -123,12 +132,20 @@
                                :clake/deps-edn deps-edn)
         aliases (conj (aliases-from-config (:clake/task-cli-args context) config)
                       clake-jvm-deps-alias)
-        cmd (str "clojure -A" (str/join aliases) " "
-                 "-Sdeps '" deps-edn "' "
-                 "-m " jvm-entrypoint-ns " "
-                 "'" context "'")]
-    ;(println cmd)
-    (exec-sync cmd {:stdio "inherit"})))
+        cmd-args [(str "-A" (str/join aliases))
+                  "-Sdeps" deps-edn
+                  "-m" jvm-entrypoint-ns
+                  context]
+        ;; we need to set stdin to "ignore" when using spawn b/c of this issue:
+        ;; https://stackoverflow.com/questions/22827642/node-js-selenium-ipv6-issue-socketexception-protocol-family-unavailable
+        ;; a possible solution to this is to use execSync and capture the exit code
+        ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
+        ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
+        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "inherit" "inherit"]})]
+    {:exit-message (when-let [b (if (= 0 status) out err)]
+                     (.toString b))
+     :ok?          (= 0 status)
+     :status       status}))
 
 (defn clj-installed?
   []
@@ -142,7 +159,8 @@
     (let [{:keys [ok? exit-message] :as context} (validate-args args)]
       (if exit-message
         (exit (if ok? 0 1) exit-message)
-        (run-task context)))
+        (let [{:keys [status exit-message]} (run-task context)]
+          (exit status exit-message))))
     (exit 1 (str "Clojure CLI tools are not installed or globally accessible.\n"
                  "Install guide:\n"
                  "  https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"))))
