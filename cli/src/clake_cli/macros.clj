@@ -1,7 +1,5 @@
-(ns clake-cli.macros
-  (:require
-    [clojure.edn :as edn]))
+(ns clake-cli.macros)
 
-(defmacro def-edn-file
-  [sym filename]
-  `(def ~sym '~(edn/read-string (slurp filename))))
+(defmacro def-env-var
+  [sym env-var-name]
+  `(def ~sym ~(System/getenv env-var-name)))

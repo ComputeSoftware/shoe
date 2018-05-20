@@ -17,4 +17,3 @@ should probably have a way of communicating data to the cleanup function.
 - watch filesystem
 - when dynamic deps are added to tools-deps we can have task level dependencies
 - init task
-- set clake-tasks git SHA version on CI

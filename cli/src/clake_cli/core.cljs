@@ -12,12 +12,11 @@
 (def config-name "clake.edn")
 (def jvm-entrypoint-ns 'clake-tasks.script.entrypoint)
 (def clake-jvm-deps-alias :clake-jvm-deps)
-(macros/def-edn-file clake-deps-edn "deps.edn")
+(macros/def-env-var circle-ci-sha1 "CIRCLE_SHA1")
 
 (def cli-options
   ;; An option with a required argument
   [["-h" "--help"]
-   [nil "--local-tasks" "Use local tasks dep for clake-tasks."]
    [nil "--tasks-sha SHA" "The git SHA to use for the clake-tasks dependency."]])
 
 (defn usage-text
@@ -54,7 +53,7 @@
      {:status (.-status result)
       :out    (.-stdout result)
       :err    (.-stderr result)
-      :r result})))
+      :r      result})))
 
 (defn exec-sync-edn
   [command]
@@ -71,14 +70,14 @@
 
 (defn with-clake-deps
   "Add the deps Clake needs to start tasks to the alias `clake-jvm-deps-alias`."
-  [deps-edn {:keys [local-tasks tasks-sha]}]
+  [deps-edn {:keys [tasks-sha]}]
   (assoc-in deps-edn
             [:aliases clake-jvm-deps-alias]
-            {:extra-deps {'clake-tasks (if local-tasks
-                                         {:local/root "../tasks"}
+            {:extra-deps {'clake-tasks (if-let [sha (or tasks-sha circle-ci-sha1)]
                                          {:git/url   "git@github.com:ComputeSoftware/clake.git"
-                                          :sha       (or tasks-sha "da722e5bdc8c679b07e05a256717c6c57a5ed4f3")
-                                          :deps/root "tasks"})}}))
+                                          :sha       sha
+                                          :deps/root "tasks"}
+                                         {:local/root "../tasks"})}}))
 
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
