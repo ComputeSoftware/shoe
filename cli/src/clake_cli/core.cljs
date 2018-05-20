@@ -98,8 +98,8 @@
                             (:arguments (cli/parse-opts task-cli-args [])))]
     (reduce-kv (fn [all-aliases task-name {:keys [aliases]}]
                  (if (contains? tasks-in-args task-name)
-                   (sets/union all-aliases (set aliases))
-                   all-aliases)) #{} (:task-opts config))))
+                   (concat all-aliases aliases)
+                   all-aliases)) [] (:task-opts config))))
 
 (defn parse-cli-opts
   [args]
