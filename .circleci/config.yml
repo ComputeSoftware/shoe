@@ -59,9 +59,18 @@ jobs:
       - checkout
       - attach_workspace:
           at: scripts
-      - run: |
-          cd tasks
-          node ./scripts/build/clake.js test
+      # TODO: This needs to be replaced with a real install task in npm
+      - run:
+          name: Install Clake
+          command: |
+            cd scripts/build
+            chmod +x clake.js
+            sudo mv clake.js /usr/local/bin/clake
+      - run:
+          name: Run tests
+          command: |
+            cd tasks
+            clake test
 
 
 workflows:
