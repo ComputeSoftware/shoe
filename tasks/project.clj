@@ -10,4 +10,6 @@
                  [org.clojure/tools.nrepl "0.2.13"]
                  [org.clojure/tools.cli "0.3.7"]
                  [org.clojure/tools.namespace "0.2.11"]
-                 [pjstadig/humane-test-output "0.8.3"]])
+                 [pjstadig/humane-test-output "0.8.3"]]
+  :main clake-tasks.script.entrypoint
+  :aot [clake-tasks.script.entrypoint])

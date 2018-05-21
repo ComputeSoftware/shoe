@@ -5,7 +5,8 @@
     [clojure.tools.cli :as cli]
     [clake-tasks.specs]
     [clake-tasks.built-in :as built-in]
-    [clake-tasks.api :as api]))
+    [clake-tasks.api :as api])
+  (:gen-class))
 
 (defn validate-task-args
   [args cli-opts]
