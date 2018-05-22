@@ -167,7 +167,7 @@
     ;; add the manifest to the jar
     (write-manifest jar-contents-path main)
     ;; create the jar
-    (archive/archive (or jar-name "standalone.jar") jar-contents-path)
+    (archive/archive (fs/path target-path (or jar-name "standalone.jar")) jar-contents-path)
     ;; cleanup
     (fs/delete jar-contents-path)
     true))
