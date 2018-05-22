@@ -2,5 +2,4 @@
                test    {:aliases [:test]}
                uberjar {:aliases []
                         :aot     :all
-                        :jar-name "standalone.jar"}}
- :target-path "target2"}
+                        :jar-name "standalone.jar"}}}
