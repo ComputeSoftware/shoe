@@ -8,10 +8,6 @@
     [hara.io.archive :as archive]
     [clake-tasks.util :as util]))
 
-(defn file-name
-  [path]
-  (str (fs/relativize (fs/parent path) path)))
-
 (defn trim-beginning-slash
   [s]
   (if (str/starts-with? s "/")
@@ -72,7 +68,7 @@
 (defn merge-files
   [existing-path new-path]
   (cond
-    (= "data_readers.clj" (file-name existing-path))
+    (= "data_readers.clj" (util/file-name existing-path))
     (merge-edn-files existing-path existing-path new-path)
     ;(re-find #"^META-INF/services/" (trim-beginning-slash new-path))
     :else (fs/move new-path existing-path)))

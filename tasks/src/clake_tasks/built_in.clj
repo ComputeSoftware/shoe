@@ -9,7 +9,8 @@
     [clake-tasks.api :as api]
     [pjstadig.humane-test-output :as humane-test]
     [clake-tasks.util :as util]
-    [clake-tasks.tasks.uberjar :as uberjar-impl])
+    [clake-tasks.tasks.uberjar :as uberjar-impl]
+    [clake-tasks.script.project-clj :as project-cli-impl])
   (:import (java.nio.file Files)))
 
 (api/deftask nrepl
@@ -49,13 +50,6 @@
     (when (not= 0 fail)
       (api/exit false))))
 
-(api/deftask aot
-  "Perform AOT compilation of Clojure namespaces."
-  {:clake/cli-specs [["-a" "--all" "Compile all namespaces"]
-                     ["-n" "--namespaces #{sym}" "A set of namespaces to compile."]]}
-  [{:keys [all namespaces]} _]
-  (println "aot"))
-
 (api/deftask uberjar
   ""
   {:clake/cli-specs []}
@@ -63,7 +57,7 @@
   (uberjar-impl/uberjar opts context))
 
 (api/deftask project-clj
-  "Generate a project.clj from your deps.edn"
+  "Generate a project.clj from your deps.edn using lein-tools-deps."
   {:clake/cli-specs []}
-  [_ _]
-  (println "aot2"))
+  [opts ctx]
+  (project-cli-impl/project-clj opts ctx))
