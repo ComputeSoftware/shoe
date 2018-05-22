@@ -25,4 +25,4 @@
                          parent-dir-name
                          "0.3.0-SNAPSHOT"
                          (str (fs/path cwd "deps.edn")))]
-    (spit (str (fs/path cwd "project2.clj")) project-string)))
+    (spit (str (fs/path cwd "project.clj")) project-string)))
