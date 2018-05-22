@@ -1,4 +1,4 @@
-(ns clake-tasks.script.project-clj
+(ns clake-tasks.tasks.project-clj
   (:require
     [clojure.pprint :as pp]
     [hara.io.file :as fs]

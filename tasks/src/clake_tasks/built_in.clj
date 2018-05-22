@@ -10,7 +10,7 @@
     [pjstadig.humane-test-output :as humane-test]
     [clake-tasks.util :as util]
     [clake-tasks.tasks.uberjar :as uberjar-impl]
-    [clake-tasks.script.project-clj :as project-cli-impl])
+    [clake-tasks.tasks.project-clj :as project-cli-impl])
   (:import (java.nio.file Files)))
 
 (api/deftask nrepl
