@@ -143,12 +143,14 @@
         (generate-manifest-string {:main-class (str (munge main))})))
 
 (defn uberjar-compile
-  [{:keys [aot aliases]} {:keys [config deps-edn]}]
+  [{:keys [main aot aliases]} {:keys [config deps-edn]}]
   (let [target-path (:target-path config)
         compile-path (fs/path target-path "classes")
-        namespaces-to-compile (set (if (= aot :all)
-                                     (util/namespaces-in-project deps-edn aliases)
-                                     aot))]
+        namespaces-in-project (set (util/namespaces-in-project deps-edn aliases))
+        namespaces-to-compile (set (if (= aot :all) namespaces-in-project aot))]
+    (when (and (contains? namespaces-in-project main)
+               (not (contains? namespaces-to-compile main)))
+      (println "WARNING: The namespace set as :main " main " is not set to be AOT compiled."))
     ;; ensure our compile path is created to avoid CompilerException
     (fs/create-directory compile-path)
     (binding [*compile-path* (str compile-path)]
