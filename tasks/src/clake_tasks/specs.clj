@@ -6,7 +6,9 @@
 ;; Config
 ;; ==========================
 (s/def :clake-config/task-opts (s/map-of (s/or :sym symbol? :string string?) map?))
-(s/def :clake/config (s/keys :opt-un [:clake-config/task-opts]))
+(s/def :clake-config/target-path string?)
+(s/def :clake/config (s/keys :opt-un [:clake-config/task-opts
+                                      :clake-config/target-path]))
 
 ;; ==========================
 ;; Task context

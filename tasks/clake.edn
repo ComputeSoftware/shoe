@@ -1,3 +1,6 @@
-{:task-opts {nrepl   {:lein-port true}
-             test    {:aliases [:test]}
-             uberjar {:aliases []}}}
+{:task-opts   {nrepl   {:lein-port true}
+               test    {:aliases [:test]}
+               uberjar {:aliases []
+                        :aot     :all
+                        :jar-name "standalone.jar"}}
+ :target-path "target2"}

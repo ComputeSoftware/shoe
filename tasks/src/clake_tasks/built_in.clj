@@ -8,7 +8,8 @@
     [clojure.tools.nrepl.server :as nrepl-server]
     [clake-tasks.api :as api]
     [pjstadig.humane-test-output :as humane-test]
-    [clake-tasks.util :as util])
+    [clake-tasks.util :as util]
+    [clake-tasks.tasks.uberjar :as uberjar-impl])
   (:import (java.nio.file Files)))
 
 (api/deftask nrepl
@@ -54,6 +55,12 @@
                      ["-n" "--namespaces #{sym}" "A set of namespaces to compile."]]}
   [{:keys [all namespaces]} _]
   (println "aot"))
+
+(api/deftask uberjar
+  ""
+  {:clake/cli-specs []}
+  [opts context]
+  (uberjar-impl/uberjar opts context))
 
 (api/deftask project-clj
   "Generate a project.clj from your deps.edn"

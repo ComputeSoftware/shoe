@@ -70,14 +70,15 @@
 
 (defn with-clake-deps
   "Add the deps Clake needs to start tasks to the alias `clake-jvm-deps-alias`."
-  [deps-edn {:keys [tasks-sha]}]
+  [deps-edn {:keys [tasks-sha]} target-path]
   (assoc-in deps-edn
             [:aliases clake-jvm-deps-alias]
-            {:extra-deps {'clake-tasks (if-let [sha (or tasks-sha circle-ci-sha1)]
-                                         {:git/url   "git@github.com:ComputeSoftware/clake.git"
-                                          :sha       sha
-                                          :deps/root "tasks"}
-                                         {:local/root "../tasks"})}}))
+            {:extra-deps  {'clake-tasks (if-let [sha (or tasks-sha circle-ci-sha1)]
+                                          {:git/url   "git@github.com:ComputeSoftware/clake.git"
+                                           :sha       sha
+                                           :deps/root "tasks"}
+                                          {:local/root "../tasks"})}
+             :extra-paths [(io/resolve (str target-path "/classes"))]}))
 
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
@@ -125,8 +126,11 @@
 
 (defn run-task
   [context]
-  (let [deps-edn (with-clake-deps (full-deps-edn) (:clake/cli-opts context))
-        config (load-config config-name)
+  (let [config (let [c (load-config config-name)]
+                 (cond-> c
+                         (not (:target-path c)) (assoc :target-path "target")))
+        target-path (:target-path config)
+        deps-edn (with-clake-deps (full-deps-edn) (:clake/cli-opts context) target-path)
         context (assoc context :clake/config config
                                :clake/deps-edn deps-edn)
         aliases (conj (aliases-from-config (:clake/task-cli-args context) config)

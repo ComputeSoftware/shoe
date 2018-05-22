@@ -1,7 +1,8 @@
 (ns clake-cli.io
-  (:refer-clojure :exclude [exists?])
+  (:refer-clojure :exclude [exists? resolve])
   (:require
     ["fs" :as fs]
+    ["path" :as path]
     [cljs.tools.reader.edn :as edn]))
 
 (defn exists?
@@ -15,6 +16,10 @@
 (defn directory?
   [path]
   (.isDirectory (fs/lstatSync path)))
+
+(defn resolve
+  [p]
+  (path/resolve p))
 
 (defn slurp
   ([filename] (slurp filename nil))
