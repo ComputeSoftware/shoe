@@ -60,11 +60,18 @@ jobs:
       - checkout
       - attach_workspace:
           at: scripts
+
       - run:
           name: Move clake.js to build dir
           command: |
             mkdir cli/build
             mv scripts/build/clake.js cli/build/clake.js
+
+      - run:
+          name: Configure Git
+          command: |
+            git config --global user.email "compute-ci@computesoftware.com"
+            git config --global user.name "compute-ci"
 
       - run:
           name: Bump version, commit, and create tag
