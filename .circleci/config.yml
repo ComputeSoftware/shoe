@@ -82,8 +82,16 @@ jobs:
             git add .
             git commit -m "$NEW_VERSION [ci skip]"
             git tag -a $NEW_VERSION -m ""
+      - run:
+          name: NPM publish
+          command: |
+            cd cli
+            npm publish
+      - run:
+          name: Push commits and tags
+          command: |
+            git push
             git push origin $NEW_VERSION
-      - run: npm --prefix cli publish
 
   test-tasks:
     <<: *defaults
