@@ -1,0 +1,7 @@
+*.iml
+.idea
+.cpcache
+.shadow-cljs
+test
+project.clj
+scripts
