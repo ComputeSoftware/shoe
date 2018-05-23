@@ -83,7 +83,10 @@
 
 (defn exit
   [status msg]
-  (when msg (println msg))
+  (when msg
+    (if (= status 0)
+      (println msg)
+      (.. System -err (println msg))))
   (System/exit status))
 
 (defn -main
