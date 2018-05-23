@@ -1,5 +1,9 @@
 {
-  "name": "clake",
+  "name": "clake-cli",
+  "version": "1.0.2",
+  "bin": {
+    "clake": "./build/clake.js"
+  },
   "devDependencies": {
     "shadow-cljs": "2.3.21"
   }
