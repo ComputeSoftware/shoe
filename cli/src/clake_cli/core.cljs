@@ -8,6 +8,7 @@
     [cljs.tools.cli :as cli]
     [clake-tasks.specs :as specs]
     [clake-tasks.api :as api]
+    [clake-tasks.log :as log]
     [clake-cli.io :as io]
     [clake-cli.macros :as macros]))
 
@@ -164,8 +165,8 @@
   [status msg]
   (when msg
     (if (= status 0)
-      (println msg)
-      (js/console.error msg)))
+      (log/info msg)
+      (log/error msg)))
   (process/exit status))
 
 (defn -main

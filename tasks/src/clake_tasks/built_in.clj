@@ -9,6 +9,7 @@
     [clake-tasks.api :as api]
     [pjstadig.humane-test-output :as humane-test]
     [clake-tasks.util :as util]
+    [clake-tasks.log :as log]
     [clake-tasks.tasks.uberjar :as uberjar-impl]
     [clake-tasks.tasks.project-clj :as project-cli-impl])
   (:import (java.nio.file Files)))
@@ -27,7 +28,7 @@
   (let [#_#_repl (main/repl)
         server (nrepl-server/start-server :port port)
         selected-port (:port server)]
-    (println (format "nREPL server started on port %s" selected-port))
+    (log/info (format "nREPL server started on port %s" selected-port))
     (when lein-port
       (spit ".nrepl-port" selected-port))
     @(promise)))

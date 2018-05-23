@@ -6,7 +6,8 @@
     [clojure.java.shell :as sh]
     [hara.io.file :as fs]
     [hara.io.archive :as archive]
-    [clake-tasks.util :as util]))
+    [clake-tasks.util :as util]
+    [clake-tasks.log :as log]))
 
 (defn trim-beginning-slash
   [s]
@@ -33,7 +34,7 @@
 
 (defmethod copy-source :default
   [src _]
-  (println (str "Could not copy classpath entry: " src)))
+  (log/error (str "Could not copy classpath entry: " src)))
 
 (defmethod copy-source :directory
   [src dest]
@@ -146,7 +147,7 @@
         namespaces-to-compile (set (if (= aot :all) namespaces-in-project aot))]
     (when (and (contains? namespaces-in-project main)
                (not (contains? namespaces-to-compile main)))
-      (println "WARNING: The namespace set as :main " main " is not set to be AOT compiled."))
+      (log/warn "The namespace set as :main " main " is not set to be AOT compiled."))
     ;; ensure our compile path is created to avoid CompilerException
     (fs/create-directory compile-path)
     (binding [*compile-path* (str compile-path)]

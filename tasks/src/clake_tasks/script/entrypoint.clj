@@ -5,7 +5,8 @@
     [clojure.tools.cli :as cli]
     [clake-tasks.specs]
     [clake-tasks.built-in :as built-in]
-    [clake-tasks.api :as api])
+    [clake-tasks.api :as api]
+    [clake-tasks.log :as log])
   (:gen-class))
 
 (defn validate-task-args
@@ -85,8 +86,8 @@
   [status msg]
   (when msg
     (if (= status 0)
-      (println msg)
-      (.. System -err (println msg))))
+      (log/info msg)
+      (log/error msg)))
   (System/exit status))
 
 (defn -main
