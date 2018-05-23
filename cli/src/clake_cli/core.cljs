@@ -110,12 +110,10 @@
   [args]
   (let [{:keys [options arguments errors summary]} (parse-cli-opts args)]
     (cond
-      (:help options)
+      (or (:help options) (nil? (first arguments)))
       {:exit-message (usage-text summary) :ok? true}
       errors
       {:exit-message (error-msg errors) :ok? false}
-      (nil? (first arguments))
-      {:exit-message "Error: Missing task name." :ok? false}
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
 
