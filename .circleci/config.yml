@@ -63,8 +63,8 @@ jobs:
       - run:
           name: Move clake.js to build dir
           command: |
-          mkdir cli/build
-          mv scripts/build/clake.js cli/build/clake.js
+            mkdir cli/build
+            mv scripts/build/clake.js cli/build/clake.js
 
       - run:
           name: Bump version, commit, and create tag
