@@ -148,6 +148,7 @@
      :ok?          (= 0 status)
      :status       status}))
 
+
 (defn clj-installed?
   []
   (try
