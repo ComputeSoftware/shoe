@@ -71,7 +71,8 @@ jobs:
           command: |
             cd cli
             export NEW_VERSION=$(npm version patch)
-            git add package.json package-lock.json
+            cd ..
+            git add .
             git commit -m "$NEW_VERSION"
             git tag -a $NEW_VERSION -m ""
             git push
