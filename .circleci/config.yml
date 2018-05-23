@@ -69,6 +69,7 @@ jobs:
       - run:
           name: Bump version, commit, and create tag
           command: |
+            cd cli
             export NEW_VERSION=$(npm version patch)
             git add package.json package-lock.json
             git commit -m "$NEW_VERSION"
