@@ -17,7 +17,7 @@
 
 (defn info
   [& strings]
-  (log* #?(:clj (.-out System) :cljs (.-stdout js/process))
+  (log* #?(:clj *out* :cljs (.-stdout js/process))
         strings))
 
 (defn warn
