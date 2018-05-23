@@ -53,6 +53,23 @@ jobs:
           paths:
             - build
 
+  publish-cli:
+    <<: *defaults
+
+    steps:
+      - checkout
+      - attach_workspace:
+          at: scripts
+      - run:
+          name: Bump version, commit, and create tag
+          command: |
+            export NEW_VERSION=$(npm version patch)
+            git add package.json package-lock.json
+            git commit -m "$NEW_VERSION"
+            git tag -a $NEW_VERSION -m ""
+            git push
+      - run: npm publish
+
   test-tasks:
     <<: *defaults
     steps:
@@ -81,6 +98,13 @@ workflows:
           context: clojure-env
       - build-cli:
           context: clojure-env
+      - publish-cli:
+          requires:
+            - test-cli
+            - build-cli
+            - test-tasks
+          only:
+            - master
       - test-tasks:
           context: clojure-env
           requires:
