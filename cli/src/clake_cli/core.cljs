@@ -20,6 +20,7 @@
 (def cli-options
   ;; An option with a required argument
   [["-h" "--help"]
+   ["-v" "--version" "Print Clake version."]
    [nil "--tasks-sha SHA" "The git SHA to use for the clake-tasks dependency."]])
 
 (defn usage-text
@@ -102,8 +103,15 @@
                             (:arguments (cli/parse-opts task-cli-args [])))]
     (reduce-kv (fn [all-aliases task-name {:keys [aliases]}]
                  (if (contains? tasks-in-args task-name)
-                   (concat all-aliases aliases)
+                   (vec (concat all-aliases aliases))
                    all-aliases)) [] (:task-opts config))))
+
+(defn cli-version-string
+  []
+  (str "Version SHA: " (or circle-ci-sha1 "local") "\n"
+       "NPM: " (try
+                 (.toString (exec-sync "npm info clake version"))
+                 (catch js/Error _ "n/a"))))
 
 (defn parse-cli-opts
   [args]
@@ -113,10 +121,14 @@
   [args]
   (let [{:keys [options arguments errors summary]} (parse-cli-opts args)]
     (cond
-      (or (:help options) (nil? (first arguments)))
+      (:help options)
       (api/exit true (usage-text summary))
+      (:version options)
+      (api/exit true (cli-version-string))
       errors
       (api/exit false (error-msg errors))
+      (nil? (first arguments))
+      (api/exit false "missing a task name")
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
 
