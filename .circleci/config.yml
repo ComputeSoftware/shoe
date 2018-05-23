@@ -80,7 +80,7 @@ jobs:
             export NEW_VERSION=$(npm version patch)
             cd ..
             git add .
-            git commit -m "$NEW_VERSION"
+            git commit -m "$NEW_VERSION [ci skip]"
             git tag -a $NEW_VERSION -m ""
             git push origin $NEW_VERSION
       - run: npm --prefix cli publish
