@@ -61,6 +61,12 @@ jobs:
       - attach_workspace:
           at: scripts
       - run:
+          name: Move clake.js to build dir
+          command: |
+          mkdir cli/build
+          mv scripts/build/clake.js cli/build/clake.js
+
+      - run:
           name: Bump version, commit, and create tag
           command: |
             export NEW_VERSION=$(npm version patch)
