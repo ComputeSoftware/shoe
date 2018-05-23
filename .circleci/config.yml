@@ -103,8 +103,10 @@ workflows:
             - test-cli
             - build-cli
             - test-tasks
-          only:
-            - master
+          filters:
+            branches:
+              only:
+                - master
       - test-tasks:
           context: clojure-env
           requires:
