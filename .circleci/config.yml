@@ -83,7 +83,7 @@ jobs:
             git commit -m "$NEW_VERSION"
             git tag -a $NEW_VERSION -m ""
             git push
-      - run: npm publish
+      - run: npm --prefix cli publish
 
   test-tasks:
     <<: *defaults
