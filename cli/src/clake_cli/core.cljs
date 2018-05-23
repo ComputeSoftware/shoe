@@ -6,6 +6,8 @@
     [clojure.set :as sets]
     [cljs.tools.reader.edn :as edn]
     [cljs.tools.cli :as cli]
+    [clake-tasks.specs :as specs]
+    [clake-tasks.api :as api]
     [clake-cli.io :as io]
     [clake-cli.macros :as macros]))
 
@@ -111,16 +113,11 @@
   (let [{:keys [options arguments errors summary]} (parse-cli-opts args)]
     (cond
       (or (:help options) (nil? (first arguments)))
-      {:exit-message (usage-text summary) :ok? true}
+      (api/exit true (usage-text summary))
       errors
-      {:exit-message (error-msg errors) :ok? false}
+      (api/exit false (error-msg errors))
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
-
-(defn exit
-  [status msg]
-  (when msg (println msg))
-  (process/exit status))
 
 (defn run-task
   [context]
@@ -142,12 +139,9 @@
         ;; a possible solution to this is to use execSync and capture the exit code
         ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
         ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
-        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "inherit" "inherit"]})]
-    {:exit-message (when-let [b (if (= 0 status) out err)]
-                     (.toString b))
-     :ok?          (= 0 status)
-     :status       status}))
-
+        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "pipe" "pipe"]})]
+    (api/exit status (when-let [buffer (if (= 0 status) out err)]
+                       (.toString buffer)))))
 
 (defn clj-installed?
   []
@@ -155,14 +149,26 @@
     (some? (exec-sync "clojure --help"))
     (catch js/Error _ false)))
 
+(defn execute
+  [args]
+  (if (clj-installed?)
+    (let [context (validate-args args)]
+      (if (api/exit? context)
+        context
+        (run-task context)))
+    (api/exit false (str "Clojure CLI tools are not installed or globally accessible.\n"
+                         "Install guide:\n"
+                         "  https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"))))
+
+(defn exit
+  [status msg]
+  (when msg
+    (if (= status 0)
+      (println msg)
+      (js/console.error msg)))
+  (process/exit status))
+
 (defn -main
   [& args]
-  (if (clj-installed?)
-    (let [{:keys [ok? exit-message] :as context} (validate-args args)]
-      (if exit-message
-        (exit (if ok? 0 1) exit-message)
-        (let [{:keys [status exit-message]} (run-task context)]
-          (exit status exit-message))))
-    (exit 1 (str "Clojure CLI tools are not installed or globally accessible.\n"
-                 "Install guide:\n"
-                 "  https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools"))))
+  (let [{:clake-exit/keys [status message]} (execute args)]
+    (exit status message)))
