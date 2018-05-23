@@ -95,7 +95,7 @@ jobs:
           name: Push commits and tags
           command: |
             git push
-            git push origin $NEW_VERSION
+            git push --tags
 
   test-tasks:
     <<: *defaults
