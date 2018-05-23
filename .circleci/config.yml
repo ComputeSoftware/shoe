@@ -74,6 +74,10 @@ jobs:
             git config --global user.name "compute-ci"
 
       - run:
+          name: Configure NPM
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+
+      - run:
           name: Bump version, commit, and create tag
           command: |
             cd cli
