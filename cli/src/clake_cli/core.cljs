@@ -21,6 +21,20 @@
   ;; An option with a required argument
   [["-h" "--help"]
    ["-v" "--version" "Print Clake version."]
+   ["-d" "--deps-edn-paths PATH" "Comma separated list of paths to deps.edn to include."
+    :default ":install,:user,:project"
+    :parse-fn (fn [comma-list]
+                (mapv (fn [path]
+                        (if (str/starts-with? path ":")
+                          (keyword (subs path 1))
+                          path))
+                      (str/split comma-list ",")))
+    :validate [(fn [paths] (sets/subset? (into #{} (filter keyword?) paths) #{:install :user :project}))
+               "Keyword paths must be one of #{:install :user :project}."
+               (fn [paths]
+                 (every? io/exists? (filter string? paths)))
+               "All paths must exist."]]
+   ["-a" "--clj-args ARGS" ""]
    [nil "--tasks-sha SHA" "The git SHA to use for the clake-tasks dependency."]])
 
 (defn usage-text
@@ -84,13 +98,28 @@
                                           {:local/root "../tasks"})}
              :extra-paths [(io/resolve (str target-path "/classes"))]}))
 
+(defn resolve-deps-edn-paths
+  "Returns a vector of filesystem paths given a list of `deps-edn-paths` that
+  may contain keywords."
+  [deps-edn-paths]
+  (vec
+    (if (empty? (filter keyword? deps-edn-paths))
+      deps-edn-paths
+      (let [[install-deps user-deps project-deps] (:config-files (exec-sync-edn "clojure -Sdescribe"))]
+        (map (fn [path]
+               (if (keyword? path)
+                 (case path
+                   :install install-deps
+                   :user user-deps
+                   :project project-deps)
+                 path)) deps-edn-paths)))))
+
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
-  []
-  (let [config-files (:config-files (exec-sync-edn "clojure -Sdescribe"))
-        deps "'{:deps {org.clojure/tools.deps.alpha {:mvn/version \"0.5.435\"}}}'"
+  [deps-edn-paths]
+  (let [deps "'{:deps {org.clojure/tools.deps.alpha {:mvn/version \"0.5.435\"}}}'"
         code (str/join " " ['(require '[clojure.tools.deps.alpha.reader :as reader])
-                            (list 'reader/read-deps config-files)])
+                            (list 'reader/read-deps deps-edn-paths)])
         cmd (str "clojure -Sdeps " deps " -e '" code "'")]
     (exec-sync-edn cmd)))
 
@@ -132,13 +161,14 @@
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
 
-(defn run-task
-  [context]
+(defn run-task-command
+  [{:clake/keys [cli-opts] :as context}]
   (let [config (let [c (load-config config-name)]
                  (cond-> c
                          (not (:target-path c)) (assoc :target-path "target")))
         target-path (:target-path config)
-        deps-edn (with-clake-deps (full-deps-edn) (:clake/cli-opts context) target-path)
+        deps-edn-paths (resolve-deps-edn-paths (:deps-edn-paths cli-opts))
+        deps-edn (with-clake-deps (full-deps-edn deps-edn-paths) cli-options target-path)
         context (assoc context :clake/config config
                                :clake/deps-edn deps-edn)
         aliases (conj (aliases-from-config (:clake/task-cli-args context) config)
@@ -146,15 +176,22 @@
         cmd-args [(str "-A" (str/join aliases))
                   "-Sdeps" deps-edn
                   "-m" jvm-entrypoint-ns
-                  context]
-        ;; we need to set stdin to "ignore" when using spawn b/c of this issue:
-        ;; https://stackoverflow.com/questions/22827642/node-js-selenium-ipv6-issue-socketexception-protocol-family-unavailable
-        ;; a possible solution to this is to use execSync and capture the exit code
-        ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
-        ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
-        ;; need to use inherit for stdout and stderr to ensure messages are piped
-        ;; realtime to the parent process given we spawn a sync command.
-        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "inherit" "inherit"]})]
+                  context]]
+    ;; we need to set stdin to "ignore" when using spawn b/c of this issue:
+    ;; https://stackoverflow.com/questions/22827642/node-js-selenium-ipv6-issue-socketexception-protocol-family-unavailable
+    ;; a possible solution to this is to use execSync and capture the exit code
+    ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
+    ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
+    ;; need to use inherit for stdout and stderr to ensure messages are piped
+    ;; realtime to the parent process given we spawn a sync command.
+    {:cmd  "clojure"
+     :args cmd-args
+     :opts {:stdio ["ignore" "inherit" "inherit"]}}))
+
+(defn run-task
+  [context]
+  (let [{:keys [cmd args opts]} (run-task-command context)
+        {:keys [status out err]} (spawn-sync cmd args opts)]
     (api/exit status (when-let [buffer (if (= 0 status) out err)]
                        (.toString buffer)))))
 

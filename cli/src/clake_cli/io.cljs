@@ -41,3 +41,7 @@
 (defn delete
   [path]
   (fs/unlinkSync path))
+
+(defn buffer-from-string
+  [str]
+  (Buffer/from str "utf8"))
