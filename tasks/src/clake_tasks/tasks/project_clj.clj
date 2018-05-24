@@ -15,6 +15,7 @@
         :license {:name "Eclipse Public License"
                   :url  "http://www.eclipse.org/legal/epl-v10.html"}
         :plugins [['lein-tools-deps lein-tools-deps-version]]
+        ;:lein-tools-deps/config {:config-files [:system :home deps-edn-path]}
         :tools/deps [:system :home deps-edn-path]))))
 
 (defn project-clj
