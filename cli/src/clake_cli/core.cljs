@@ -102,17 +102,18 @@
   "Returns a vector of filesystem paths given a list of `deps-edn-paths` that
   may contain keywords."
   [deps-edn-paths]
-  (vec
-    (if (empty? (filter keyword? deps-edn-paths))
-      deps-edn-paths
-      (let [[install-deps user-deps project-deps] (:config-files (exec-sync-edn "clojure -Sdescribe"))]
-        (map (fn [path]
-               (if (keyword? path)
-                 (case path
-                   :install install-deps
-                   :user user-deps
-                   :project project-deps)
-                 path)) deps-edn-paths)))))
+  (into []
+        (filter some?)
+        (if (empty? (filter keyword? deps-edn-paths))
+          deps-edn-paths
+          (let [[install-deps user-deps project-deps] (:config-files (exec-sync-edn "clojure -Sdescribe"))]
+            (map (fn [path]
+                   (if (keyword? path)
+                     (case path
+                       :install install-deps
+                       :user user-deps
+                       :project project-deps)
+                     path)) deps-edn-paths)))))
 
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
