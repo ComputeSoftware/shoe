@@ -44,4 +44,4 @@
 
 (defn buffer-from-string
   [str]
-  (Buffer/from str "utf8"))
+  (.from ^js Buffer str "utf8"))
