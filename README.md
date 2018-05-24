@@ -41,6 +41,7 @@ should probably have a way of communicating data to the cleanup function.
 - when dynamic deps are added to tools-deps we can have task level dependencies
 - use uber-shade on clake deps so they are "hidden" on the classpath (or look into classpath isolation)
 - use color in console printing
+- Able to add aliases ad hoc via cli
 
 ### Tasks
 
@@ -50,4 +51,5 @@ should probably have a way of communicating data to the cleanup function.
 - watch filesystem
 - show out of date deps
 - create new project
+- lein javac
 - update clake (do we need this or just use NPM?)
