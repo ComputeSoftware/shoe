@@ -152,7 +152,9 @@
         ;; a possible solution to this is to use execSync and capture the exit code
         ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
         ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
-        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "pipe" "pipe"]})]
+        ;; need to use inherit for stdout and stderr to ensure messages are piped
+        ;; realtime to the parent process given we spawn a sync command.
+        {:keys [status out err]} (spawn-sync "clojure" cmd-args {:stdio ["ignore" "inherit" "inherit"]})]
     (api/exit status (when-let [buffer (if (= 0 status) out err)]
                        (.toString buffer)))))
 

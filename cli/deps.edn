@@ -4,5 +4,5 @@
            org.clojure/tools.cli     {:mvn/version "0.3.7"}
            thheller/shadow-cljs      {:mvn/version "2.3.21"}
            expound                   {:mvn/version "0.6.0"}
-           clake-tasks               {:local/root "/Users/kenny/compute_software/clake/tasks"}}
+           clake-tasks               {:local/root "../tasks"}}
  :aliases {:test {:extra-paths ["test"]}}}
