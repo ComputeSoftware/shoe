@@ -17,7 +17,9 @@
       (is (= 3 (count paths)))
       (is (every? string? paths))))
   (testing "string paths are left alone"
-    (is (= ["deps.edn"] (cli/resolve-deps-edn-paths ["deps.edn"])))))
+    (is (= ["deps.edn"] (cli/resolve-deps-edn-paths ["deps.edn"]))))
+  (testing "nils are removed"
+    (is (= [] (cli/resolve-deps-edn-paths [nil])))))
 
 (deftest full-deps-edn-test
   (is (map? (cli/full-deps-edn ["deps.edn"]))))
