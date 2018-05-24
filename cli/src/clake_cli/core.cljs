@@ -139,7 +139,7 @@
   []
   (str "Version SHA: " (or circle-ci-sha1 "local") "\n"
        "NPM: " (try
-                 (.toString (exec-sync "npm info clake version"))
+                 (.toString (exec-sync "npm info clake-cli version"))
                  (catch js/Error _ "n/a"))))
 
 (defn parse-cli-opts
