@@ -22,7 +22,7 @@
   [["-h" "--help"]
    ["-v" "--version" "Print Clake version."]
    ["-d" "--deps-edn-paths PATH" "Comma separated list of paths to deps.edn to include."
-    :default ":install,:user,:project"
+    :default [:install :user :project]
     :parse-fn (fn [comma-list]
                 (mapv (fn [path]
                         (if (str/starts-with? path ":")

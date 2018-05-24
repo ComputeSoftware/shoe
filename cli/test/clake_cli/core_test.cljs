@@ -38,13 +38,16 @@
     (get args-vec (inc Sdeps-index))))
 
 (deftest run-task-command-test
-  (testing "able to set deps.edn via CLI args"
-    (letfn [(run-cmd [deps-path]
-              (-> ["-d" deps-path "test"]
-                  (cli/validate-args)
-                  (cli/run-task-command)
-                  :args
-                  get-Sdeps-value))]
+  (letfn [(run-cmd [deps-path]
+            (-> (vec (concat (when deps-path ["-d" deps-path])
+                             ["test"]))
+                (cli/validate-args)
+                (cli/run-task-command)
+                :args
+                get-Sdeps-value))]
+    (testing "defaults deps.edn works"
+      (is (run-cmd nil)))
+    (testing "able to set deps.edn via CLI args"
       (is (= (run-cmd "deps.edn")
              (run-cmd ":project"))))))
 
