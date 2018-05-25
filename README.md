@@ -44,6 +44,7 @@ should probably have a way of communicating data to the cleanup function.
 - use uber-shade on clake deps so they are "hidden" on the classpath (or look into classpath isolation)
 - use color in console printing
 - Able to add aliases ad hoc via cli
+- Look into GraalVM to see if that would make everything easier
 
 ### Tasks
 
