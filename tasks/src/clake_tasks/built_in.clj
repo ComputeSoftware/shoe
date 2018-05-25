@@ -5,6 +5,7 @@
     [clojure.test :as clj-test]
     [clojure.pprint :as pprint]
     [clojure.java.io :as io]
+    [clojure.string :as str]
     [clojure.tools.nrepl.server :as nrepl-server]
     [clake-tasks.api :as api]
     [pjstadig.humane-test-output :as humane-test]
@@ -55,7 +56,13 @@
 
 (api/deftask pom
   ""
-  {:clake/cli-specs []}
+  {:clake/cli-specs [["-p" "--project STR" "Project name used in generated pom.xml."
+                      :parse-fn (fn [s]
+                                  (let [[group-id artifact-id] (str/split s #"\/" 2)
+                                        artifact-id (or artifact-id group-id)]
+                                    (symbol group-id artifact-id)))]
+                     ["-v" "--version STR" "Version used in generated pom.xml."
+                      :default "0.1.0"]]}
   [opts context]
   (pom-impl/pom opts context))
 

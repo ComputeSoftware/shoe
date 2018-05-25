@@ -1,6 +1,5 @@
 (ns clake-cli.core
   (:require
-    ["child_process" :as child-proc]
     ["process" :as process]
     [clojure.string :as str]
     [clojure.set :as sets]
@@ -10,7 +9,8 @@
     [clake-tasks.api :as api]
     [clake-tasks.log :as log]
     [clake-cli.io :as io]
-    [clake-cli.macros :as macros]))
+    [clake-cli.macros :as macros]
+    [clake-tasks.shell :as shell]))
 
 (def config-name "clake.edn")
 (def jvm-entrypoint-ns 'clake-tasks.script.entrypoint)
@@ -21,7 +21,7 @@
   ;; An option with a required argument
   [["-h" "--help"]
    ["-v" "--version" "Print Clake version."]
-   ["-d" "--deps-edn-paths PATH" "Comma separated list of paths to deps.edn to include."
+   ["-c" "--config-files PATH" "Comma separated list of paths to deps.edn to include."
     :default [:install :user :project]
     :parse-fn (fn [comma-list]
                 (mapv (fn [path]
@@ -56,31 +56,6 @@
   (str "The following errors occurred while parsing your command:\n\n"
        (str/join \newline errors)))
 
-;; https://nodejs.org/api/child_process.html#child_process_child_process_execsync_command_options
-(defn exec-sync
-  "Executes a command synchronously and sends the output to the parent process."
-  ([command] (exec-sync command nil))
-  ([command options]
-   (child-proc/execSync command (clj->js (merge {:stdio "pipe"}
-                                                options)))))
-
-(defn spawn-sync
-  ([command args] (spawn-sync command args {}))
-  ([command args options]
-   (let [result (child-proc/spawnSync command (to-array args) (clj->js options))]
-     {:status (.-status result)
-      :out    (.-stdout result)
-      :err    (.-stderr result)
-      :r      result})))
-
-(defn exec-sync-edn
-  [command]
-  (edn/read-string (.toString (exec-sync command))))
-
-(defn stringify-code
-  [& code]
-  (str/join " " code))
-
 (defn load-config
   [config-path]
   (when (io/exists? config-path)
@@ -106,7 +81,10 @@
         (filter some?)
         (if (empty? (filter keyword? deps-edn-paths))
           deps-edn-paths
-          (let [[install-deps user-deps project-deps] (:config-files (exec-sync-edn "clojure -Sdescribe"))]
+          (let [[install-deps user-deps project-deps] (-> {:command :describe
+                                                           :as      :edn}
+                                                          (shell/clojure-deps-command)
+                                                          :out :config-files)]
             (map (fn [path]
                    (if (keyword? path)
                      (case path
@@ -118,11 +96,11 @@
 (defn full-deps-edn
   "Returns the fully merged deps.edn as EDN."
   [deps-edn-paths]
-  (let [deps "'{:deps {org.clojure/tools.deps.alpha {:mvn/version \"0.5.435\"}}}'"
-        code (str/join " " ['(require '[clojure.tools.deps.alpha.reader :as reader])
-                            (list 'reader/read-deps deps-edn-paths)])
-        cmd (str "clojure -Sdeps " deps " -e '" code "'")]
-    (exec-sync-edn cmd)))
+  (:out
+    (shell/clojure-deps-command {:deps-edn  '{:deps {org.clojure/tools.deps.alpha {:mvn/version "0.5.435"}}}
+                                 :eval-code ['(require '[clojure.tools.deps.alpha.reader :as reader])
+                                             (list 'reader/read-deps deps-edn-paths)]
+                                 :as        :edn})))
 
 (defn aliases-from-config
   "Returns a set of all aliases set in the `:task-opts` key in the config for the
@@ -139,9 +117,8 @@
 (defn cli-version-string
   []
   (str "Version SHA: " (or circle-ci-sha1 "local") "\n"
-       "NPM: " (try
-                 (.toString (exec-sync "npm info clake-cli version"))
-                 (catch js/Error _ "n/a"))))
+       "NPM: " (let [r (shell/spawn-sync "npm" ["info" "clake-cli" "version"])]
+                 (if (shell/status-success? r) (:out r) "n/a"))))
 
 (defn parse-cli-opts
   [args]
@@ -158,7 +135,7 @@
       errors
       (api/exit false (error-msg errors))
       (nil? (first arguments))
-      (api/exit false "missing a task name")
+      (api/exit true (usage-text summary))
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
 
@@ -173,33 +150,23 @@
         context (assoc context :clake/config config
                                :clake/deps-edn deps-edn)
         aliases (conj (aliases-from-config (:clake/task-cli-args context) config)
-                      clake-jvm-deps-alias)
-        cmd-args [(str "-A" (str/join aliases))
-                  "-Sdeps" deps-edn
-                  "-m" jvm-entrypoint-ns
-                  context]]
-    ;; we need to set stdin to "ignore" when using spawn b/c of this issue:
-    ;; https://stackoverflow.com/questions/22827642/node-js-selenium-ipv6-issue-socketexception-protocol-family-unavailable
-    ;; a possible solution to this is to use execSync and capture the exit code
-    ;; with this method: https://stackoverflow.com/questions/32874316/node-js-accessing-the-exit-code-and-stderr-of-a-system-command
-    ;; will ignore this issue until it becomes a more pressing problem... 05/19/2018 :)
-    ;; need to use inherit for stdout and stderr to ensure messages are piped
-    ;; realtime to the parent process given we spawn a sync command.
-    {:cmd  "clojure"
-     :args cmd-args
-     :opts {:stdio ["ignore" "inherit" "inherit"]}}))
+                      clake-jvm-deps-alias)]
+    {:deps-edn deps-edn
+     :aliases  aliases
+     :main     jvm-entrypoint-ns
+     :args     context
+     :cmd-opts {:stdio ["ignore" "inherit" "inherit"]}}))
 
 (defn run-task
   [context]
-  (let [{:keys [cmd args opts]} (run-task-command context)
-        {:keys [status out err]} (spawn-sync cmd args opts)]
-    (api/exit status (when-let [buffer (if (= 0 status) out err)]
-                       (.toString buffer)))))
+  (let [clojure-cmd-opts (run-task-command context)
+        {:keys [exit out err] :as r} (shell/clojure-deps-command clojure-cmd-opts)]
+    (api/exit exit (if (shell/status-success? r) out err))))
 
 (defn clj-installed?
   []
   (try
-    (some? (exec-sync "clojure --help"))
+    (some? (shell/clojure-command ["--help"]))
     (catch js/Error _ false)))
 
 (defn execute

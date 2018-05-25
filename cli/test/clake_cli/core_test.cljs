@@ -22,7 +22,9 @@
     (is (= [] (cli/resolve-deps-edn-paths [nil])))))
 
 (deftest full-deps-edn-test
-  (is (map? (cli/full-deps-edn ["deps.edn"]))))
+  (let [deps-edn (cli/full-deps-edn ["deps.edn"])]
+    (is (map? deps-edn))
+    (is (:paths deps-edn))))
 
 (deftest aliases-from-config-test
   (let [config {:task-opts '{a {:aliases ["a-alias"]}
@@ -32,21 +34,13 @@
            (cli/aliases-from-config ["a" "-b" "b" "c"] config)))
     (is (= [] (cli/aliases-from-config ["c"] config)))))
 
-(defn get-Sdeps-value
-  "Returns the value of -Sdeps in `args-vec`."
-  [args-vec]
-  (let [Sdeps-index (ffirst (filter (fn [[_ x]] (= x "-Sdeps"))
-                                    (map-indexed vector args-vec)))]
-    (get args-vec (inc Sdeps-index))))
-
 (deftest run-task-command-test
   (letfn [(run-cmd [deps-path]
-            (-> (vec (concat (when deps-path ["-d" deps-path])
+            (-> (vec (concat (when deps-path ["-c" deps-path])
                              ["test"]))
                 (cli/validate-args)
                 (cli/run-task-command)
-                :args
-                get-Sdeps-value))]
+                :deps-edn))]
     (testing "defaults deps.edn works"
       (is (run-cmd nil)))
     (testing "able to set deps.edn via CLI args"

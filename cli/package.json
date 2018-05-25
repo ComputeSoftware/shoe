@@ -4,7 +4,10 @@
   "bin": {
     "clake": "./build/clake.js"
   },
+  "dependencies": {
+    "tmp": "0.0.33"
+  },
   "devDependencies": {
-    "shadow-cljs": "2.3.21"
+    "shadow-cljs": "2.3.25"
   }
 }
