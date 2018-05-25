@@ -23,3 +23,8 @@
 (defn file-name
   [path]
   (str (fs/relativize (fs/parent path) path)))
+
+(defn symbol-from-var
+  [v]
+  (let [{:keys [name ns]} (meta v)]
+    (symbol (str ns) (str name))))
