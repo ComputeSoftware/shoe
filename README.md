@@ -4,7 +4,9 @@
 
 Clojure make.
 
-## Installation
+## Installation & Upgrading
+
+To install or upgrade Clake, run this command.
 
 ```bash
 npm install -g clake-cli
@@ -52,4 +54,3 @@ should probably have a way of communicating data to the cleanup function.
 - show out of date deps
 - create new project
 - lein javac
-- update clake (do we need this or just use NPM?)
