@@ -2,7 +2,14 @@
 
 [![CircleCI](https://circleci.com/gh/ComputeSoftware/clake.svg?style=svg)](https://circleci.com/gh/ComputeSoftware/clake)
 
-Clojure make.
+Clojure make - a simple Clojure build tool, based on tools-deps (deps.edn).
+
+## Rationale
+
+The first goal of a simple build tool should be to aggregate all the common 
+tasks (uberjar, pom, test, etc) into one repo so they are easy to use. The goal 
+of the Clake CLI should be to create a way to combine those tasks into one 
+command and to provide a way to set default options to each of those tasks.
 
 ## Installation & Upgrading
 

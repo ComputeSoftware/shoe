@@ -1,4 +1,4 @@
-(ns clake-tasks.specs
+(ns clake-common.specs
   (:require
     [clojure.spec.alpha :as s]))
 

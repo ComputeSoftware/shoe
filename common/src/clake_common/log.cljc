@@ -1,4 +1,4 @@
-(ns clake-tasks.log
+(ns clake-common.log
   (:require
     [clojure.string :as str]))
 

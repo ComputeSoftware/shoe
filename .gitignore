@@ -7,3 +7,4 @@ node_modules
 .shadow-cljs
 .lein-repl-history
 project.clj
+pom.xml

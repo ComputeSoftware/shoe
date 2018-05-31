@@ -1,8 +1,7 @@
-(ns clake-tasks.util
+(ns clake-common.util
   (:require
     [clojure.java.io :as io]
-    [clojure.tools.namespace.find :as ns.find]
-    [hara.io.file :as fs])
+    [clojure.tools.namespace.find :as ns.find])
   (:import (clojure.lang IFn)))
 
 (defn add-shutdown-hook
@@ -19,10 +18,6 @@
                                              vals))
         paths (set (concat (:paths deps-edn) alias-paths))]
     (ns.find/find-namespaces (map io/file paths))))
-
-(defn file-name
-  [path]
-  (str (fs/relativize (fs/parent path) path)))
 
 (defn symbol-from-var
   [v]
