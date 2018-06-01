@@ -3,7 +3,7 @@
     [clojure.test :as clj-test]
     [pjstadig.humane-test-output :as humane-test]
     [clake-common.util :as util]
-    [clake-common.shell :as shell]))
+    [clake-common.task :as task]))
 
 (defn test
   "Run the project's tests."
@@ -15,4 +15,4 @@
         _ (apply require namespaces)
         {:keys [fail]} (apply clj-test/run-tests namespaces)]
     (when (not= 0 fail)
-      (shell/exit false))))
+      (task/exit false))))
