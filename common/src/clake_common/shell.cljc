@@ -15,6 +15,15 @@
   [x]
   (some? (:clake-exit/status x)))
 
+(defn system-exit
+  "Exit the process."
+  [{:clake-exit/keys [status message]}]
+  (when message
+    (if (= status 0)
+      (log/info message)
+      (log/error message)))
+  #?(:clj (System/exit status) :cljs (.exit js/process status)))
+
 (defn exit
   "Return a map that can be passed to `system-exit` to exit the process."
   ([ok?-or-status] (exit ok?-or-status nil))
@@ -26,15 +35,6 @@
      (cond-> {:clake-exit/status status
               :clake-exit/ok?    ok?}
              msg (assoc :clake-exit/message msg)))))
-
-(defn system-exit
-  "Exit the process."
-  [{:clake-exit/keys [status message]}]
-  (when message
-    (if (= status 0)
-      (log/info message)
-      (log/error message)))
-  #?(:clj (System/exit status) :cljs (.exit js/process status)))
 
 (defn create-tempdir
   []
@@ -90,3 +90,20 @@
     (cond-> r
             (and (status-success? r) (= as :edn))
             (update :out edn/read-string))))
+
+(defn deps-config-files
+  "Returns a vector of tools-deps config files."
+  []
+  (-> (clojure-deps-command {:command :describe
+                             :as      :edn})
+      :out :config-files))
+
+(defn full-deps-edn
+  "Returns the fully merged deps.edn as EDN."
+  [deps-edn-paths]
+  (let [deps {:deps {'org.clojure/tools.deps.alpha {:mvn/version "0.5.435"}}}
+        code ['(require '[clojure.tools.deps.alpha.reader :as reader])
+              (list 'reader/read-deps deps-edn-paths)]]
+    (:out (clojure-deps-command {:deps-edn  deps
+                                 :eval-code code
+                                 :as        :edn}))))
