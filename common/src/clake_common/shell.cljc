@@ -3,8 +3,7 @@
     [clojure.string :as str]
     #?(:clj
     [clojure.edn :as edn] :cljs [cljs.tools.reader.edn :as edn])
-    #?(:clj
-    [clojure.java.shell :as proc] :cljs ["child_process" :as proc])
+    #?(:cljs ["child_process" :as proc])
     [clake-common.log :as log])
   #?(:clj
      (:import (java.nio.file Files)
@@ -24,6 +23,8 @@
       (log/error message)))
   #?(:clj (System/exit status) :cljs (.exit js/process status)))
 
+(def ^:dynamic *skip-exit* nil)
+
 (defn exit
   "Return a map that can be passed to `system-exit` to exit the process."
   ([ok?-or-status] (exit ok?-or-status nil))
@@ -31,10 +32,13 @@
    (let [status (if (number? ok?-or-status)
                   ok?-or-status
                   (if ok?-or-status 0 1))
-         ok? (= status 0)]
-     (cond-> {:clake-exit/status status
-              :clake-exit/ok?    ok?}
-             msg (assoc :clake-exit/message msg)))))
+         ok? (= status 0)
+         exit-map (cond-> {:clake-exit/status status
+                           :clake-exit/ok?    ok?}
+                          msg (assoc :clake-exit/message msg))]
+     (when-not *skip-exit*
+       (system-exit exit-map))
+     exit-map)))
 
 (defn create-tempdir
   []
@@ -49,14 +53,25 @@
   [r]
   (not (status-success? r)))
 
+#?(:clj
+   ;; we need to write out own shell function instead of Clojure's because of
+   ;; https://dev.clojure.org/jira/browse/CLJ-959
+   (defn spawn-sync-jvm
+     [args]
+     (let [proc (.exec (Runtime/getRuntime) ^"[Ljava.lang.String;" (into-array String args))]
+       (with-open [stdout (.getInputStream proc)
+                   stderr (.getErrorStream proc)]
+         (let [status (.waitFor proc)]
+           {:exit status
+            :out  (slurp stdout)
+            :err  (slurp stderr)})))))
+
 (defn spawn-sync
   ([command] (spawn-sync command nil))
   ([command args] (spawn-sync command args nil))
   ([command args {:keys [dir] :as opts}]
    (let [args (filter some? args)]
-     #?(:clj  (apply proc/sh (concat [command]
-                                     (map str args)
-                                     (mapcat identity {:dir dir})))
+     #?(:clj  (spawn-sync-jvm (concat [command] (map str args)))
         :cljs (let [result (proc/spawnSync command
                                            (to-array args)
                                            (clj->js (cond-> {}
