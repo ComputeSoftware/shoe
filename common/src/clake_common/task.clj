@@ -6,7 +6,8 @@
     [clojure.java.io :as io]
     [clojure.edn :as edn]
     [clake-common.util :as util]
-    [clake-common.log :as log]))
+    [clake-common.log :as log]
+    [clake-common.shell :as shell]))
 
 (def config-name "clake.edn")
 
@@ -18,21 +19,6 @@
 (defn task-options
   [config qualified-task-sym]
   (get-in config [:task-opts qualified-task-sym]))
-
-(defn exit?
-  [x]
-  (some? (:clake-exit/status x)))
-
-(defn exit
-  ([ok?-or-status] (exit ok?-or-status nil))
-  ([ok?-or-status msg]
-   (let [status (if (number? ok?-or-status)
-                  ok?-or-status
-                  (if ok?-or-status 0 1))
-         ok? (= status 0)]
-     (cond-> {:clake-exit/status status
-              :clake-exit/ok?    ok?}
-             msg (assoc :clake-exit/message msg)))))
 
 (s/def :clake/cli-specs vector?)
 (s/def :clake/shutdown-fn any?)
@@ -47,10 +33,10 @@
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-opts-string)]
     (cond
       (:help options)
-      (exit true (->> ["Options:" summary]
+      (shell/exit true (->> ["Options:" summary]
                       (str/join \n)))
       errors
-      (exit false (str/join \n errors))
+      (shell/exit false (str/join \n errors))
       :else options)))
 
 (defn system-exit
@@ -61,19 +47,25 @@
       (log/error message)))
   (System/exit status))
 
-(defn- task-main-form
-  [cli-specs handler]
-  `(defn ~'-main
+(defn- task-cli-handler-form
+  [fn-name cli-specs handler]
+  `(defn ~fn-name
      [& args#]
      (let [r# (validate-args args# ~cli-specs)]
-       (if (exit? r#)
+       (if (shell/exit? r#)
          (system-exit r#)
          (let [config# (load-config)]
            (~handler (merge (task-options config# ~handler) r#)))))))
 
+(defmacro def-task-cli-handler
+  [fn-name qualified-task-name]
+  (task-cli-handler-form fn-name
+                         (:clake/cli-specs (meta (resolve qualified-task-name)))
+                         qualified-task-name))
+
 (defmacro def-task-main
   [qualified-task-name]
-  (task-main-form (:clake/cli-specs (meta (resolve qualified-task-name))) qualified-task-name))
+  `(def-task-cli-handler ~'-main ~qualified-task-name))
 
 ;; can use *command-line-args*
 (defmacro deftask
