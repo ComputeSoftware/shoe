@@ -2,8 +2,7 @@
   (:require
     [clojure.pprint :as pp]
     [clojure.java.io :as io]
-    [clojure.string :as str]
-    [clake-tasks.util :as util])
+    [clojure.string :as str])
   (:import (java.io File)))
 
 (defn generate-project-clj-string
@@ -27,3 +26,7 @@
                          parent-dir-name
                          "0.4.0-SNAPSHOT")]
     (spit (io/file cwd "project.clj") project-string)))
+
+(defn -main
+  [& args]
+  (project-clj nil))

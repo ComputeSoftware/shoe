@@ -3,13 +3,12 @@
     [clojure.java.io :as io]
     [clojure.tools.nrepl.server :as nrepl-server]
     [clake-common.log :as log]
-    [clake-common.task :as task])
+    [clake-common.task :as task]
+    [clake-common.script.built-in-tasks :as tasks])
   (:import (java.nio.file Files)))
 
 (defn repl
-  {:clake/cli-specs   [["-p" "--port PORT" "Port to start nREPL server on."
-                        :parse-fn #(Integer/parseInt %)]
-                       ["-l" "--lein-port" "Spit the port to .nrepl-port."]]
+  {:clake/cli-specs   (tasks/cli-spec `repl)
    :clake/shutdown-fn (fn []
                         (Files/deleteIfExists (.toPath (io/file ".nrepl-port"))))}
   [{:keys [port lein-port]

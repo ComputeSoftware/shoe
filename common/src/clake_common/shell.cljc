@@ -23,8 +23,6 @@
       (log/error message)))
   #?(:clj (System/exit status) :cljs (.exit js/process status)))
 
-(def ^:dynamic *skip-exit* nil)
-
 (defn exit
   "Return a map that can be passed to `system-exit` to exit the process."
   ([ok?-or-status] (exit ok?-or-status nil))
@@ -36,8 +34,6 @@
          exit-map (cond-> {:clake-exit/status status
                            :clake-exit/ok?    ok?}
                           msg (assoc :clake-exit/message msg))]
-     (when-not *skip-exit*
-       (system-exit exit-map))
      exit-map)))
 
 (defn create-tempdir
@@ -78,8 +74,10 @@
                                                             dir (assoc :cwd dir)
                                                             true (merge opts))))]
                 {:exit (.-status result)
-                 :out  (.toString (.-stdout result))
-                 :err  (.toString (.-stderr result))})))))
+                 :out  (when-let [s (.-stdout result)]
+                         (.toString s))
+                 :err  (when-let [s (.-stderr result)]
+                         (.toString s))})))))
 
 (defn clojure-command
   ([args] (clojure-command args nil))

@@ -7,6 +7,7 @@
     [hara.io.file :as fs]
     [hara.io.archive :as archive]
     [clake-common.util :as util]
+    [clake-common.shell :as shell]
     [clake-common.log :as log]))
 
 (defn trim-beginning-slash
@@ -125,7 +126,8 @@
   [aliases]
   ;; should probably replace this we an actual API call to tools-deps. there's
   ;; no easy built-in function to do this right now though.
-  (let [{:keys [exit out]} (sh/sh "clojure" (str "-A" (str/join aliases)) "-Spath")]
+  (let [{:keys [exit out]} (shell/clojure-deps-command {:aliases aliases
+                                                        :command :path})]
     (when (= 0 exit)
       (str/trim-newline out))))
 

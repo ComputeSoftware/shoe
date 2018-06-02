@@ -18,6 +18,7 @@
 
 (defn task-options
   [config qualified-task-sym]
+  ;; TODO: this should also check :refer-tasks before looking up :task-opts
   (get-in config [:task-opts qualified-task-sym]))
 
 (s/def :clake/cli-specs vector?)
@@ -34,7 +35,7 @@
     (cond
       (:help options)
       (shell/exit true (->> ["Options:" summary]
-                      (str/join \n)))
+                            (str/join \n)))
       errors
       (shell/exit false (str/join \n errors))
       :else options)))
@@ -47,25 +48,31 @@
       (log/error message)))
   (System/exit status))
 
+(defn execute-task-handler
+  [qualified-task-name cli-specs args handler]
+  (let [r (validate-args args cli-specs)]
+    (if-not (shell/exit? r)
+      (handler (merge (task-options (load-config) qualified-task-name) r))
+      (system-exit r))))
+
 (defn- task-cli-handler-form
-  [fn-name cli-specs handler]
-  `(defn ~fn-name
+  [fn-sym cli-specs task-sym]
+  `(defn ~fn-sym
      [& args#]
-     (let [r# (validate-args args# ~cli-specs)]
-       (if (shell/exit? r#)
-         (system-exit r#)
-         (let [config# (load-config)]
-           (~handler (merge (task-options config# ~handler) r#)))))))
+     (execute-task-handler '~(symbol (str *ns*) (str task-sym))
+                           ~cli-specs
+                           args#
+                           ~task-sym)))
 
 (defmacro def-task-cli-handler
-  [fn-name qualified-task-name]
+  [fn-name task-sym]
   (task-cli-handler-form fn-name
-                         (:clake/cli-specs (meta (resolve qualified-task-name)))
-                         qualified-task-name))
+                         (:clake/cli-specs (meta (resolve task-sym)))
+                         task-sym))
 
 (defmacro def-task-main
-  [qualified-task-name]
-  `(def-task-cli-handler ~'-main ~qualified-task-name))
+  [task-sym]
+  `(def-task-cli-handler ~'-main ~task-sym))
 
 ;; can use *command-line-args*
 (defmacro deftask
