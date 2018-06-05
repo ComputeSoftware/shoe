@@ -111,9 +111,7 @@
           (let [{:keys [task args]} (first parsed-args)
                 result (shell/clojure-deps-command (task-clojure-command task args extra-deps aliases))]
             (if (shell/status-success? result)
-              (do
-                (println (:out result))
-                (recur (rest parsed-args)))
+              (recur (rest parsed-args))
               (shell/exit (:exit result) (:err result))))
           (shell/exit true)))
       parsed-args)))
