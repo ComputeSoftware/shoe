@@ -39,10 +39,10 @@
                           msg (assoc :clake-exit/message msg))]
      exit-map)))
 
-(defn create-tempdir
-  []
-  #?(:clj  (str (Files/createTempDirectory "" (make-array FileAttribute 0)))
-     :cljs (.-name (tmp/dirSync))))
+;(defn create-tempdir
+;  []
+;  #?(:clj  (str (Files/createTempDirectory "" (make-array FileAttribute 0)))
+;     :cljs (.-name (tmp/dirSync))))
 
 (defn status-success?
   [r]
