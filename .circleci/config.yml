@@ -116,7 +116,6 @@ jobs:
             cd common
             clake -A :test test
 
-
 workflows:
   version: 2
   ci-workflow:
