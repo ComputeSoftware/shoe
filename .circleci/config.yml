@@ -134,7 +134,7 @@ workflows:
             branches:
               only:
                 - master
-      - test-tasks:
+      - test-jvm-code:
           context: clojure-env
           requires:
             - test-cli
