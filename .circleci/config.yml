@@ -30,6 +30,7 @@ jobs:
           command: |
             cd cli
             npx shadow-cljs release test
+            node build-test/clake-tests.js
 
   build-cli:
     <<: *defaults
