@@ -129,7 +129,7 @@ workflows:
           requires:
             - test-cli
             - build-cli
-            - test-tasks
+            - test-jvm-code
           filters:
             branches:
               only:
