@@ -17,6 +17,8 @@
   [m k v]
   (update-in m [k] (fnil conj #{}) v))
 
+(def cli-task-help-option ["-h" "--help" "Print help menu for this task."])
+
 (def cli-specs
   {'clake-tasks.repl/repl [["-p" "--port PORT" "Port to start nREPL server on."
                             :parse-fn #(Integer/parseInt %)]

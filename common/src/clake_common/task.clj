@@ -30,45 +30,39 @@
                              :body (s/* any?)))
 
 (defn validate-args
-  [args cli-opts-string]
-  (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-opts-string)]
+  [args cli-specs task-doc]
+  (let [cli-specs (conj cli-specs ["-h" "--help" "Print the help menu for this task."])
+        {:keys [options arguments errors summary]} (cli/parse-opts args cli-specs)]
     (cond
       (:help options)
-      (shell/exit true (->> ["Options:" summary]
-                            (str/join \n)))
+      (shell/exit true (->> [(when task-doc [task-doc ""])
+                             "Options:"
+                             summary]
+                            (filter some?)
+                            (flatten)
+                            (str/join "\n")))
       errors
-      (shell/exit false (str/join \n errors))
+      (shell/exit false (str/join "\n" errors))
       :else options)))
 
-(defn system-exit
-  [{:clake-exit/keys [status message]}]
-  (when message
-    (if (= status 0)
-      (log/info message)
-      (log/error message)))
-  (System/exit status))
-
 (defn execute-task-handler
-  [qualified-task-name cli-specs args handler]
-  (let [r (validate-args args cli-specs)]
-    (if-not (shell/exit? r)
-      (handler (merge (task-options (load-config) qualified-task-name) r))
-      (system-exit r))))
-
-(defn- task-cli-handler-form
-  [fn-sym cli-specs task-sym]
-  `(defn ~fn-sym
-     [& args#]
-     (execute-task-handler '~(symbol (str *ns*) (str task-sym))
-                           ~cli-specs
-                           args#
-                           ~task-sym)))
+  [qualified-task-name args]
+  (let [task-var (resolve qualified-task-name)
+        meta-map (meta task-var)
+        r (validate-args args (:clake/cli-specs meta-map) (:doc meta-map))]
+    (shell/system-exit
+      (if-not (shell/exit? r)
+        (let [r (@task-var (merge (task-options (load-config) qualified-task-name) r))]
+          (if (shell/exit? r)
+            r
+            (shell/exit true)))
+        r))))
 
 (defmacro def-task-cli-handler
-  [fn-name task-sym]
-  (task-cli-handler-form fn-name
-                         (:clake/cli-specs (meta (resolve task-sym)))
-                         task-sym))
+  [fn-sym task-sym]
+  `(defn ~fn-sym
+     [& args#]
+     (execute-task-handler '~(symbol (str *ns*) (str task-sym)) args#)))
 
 (defmacro def-task-main
   [task-sym]

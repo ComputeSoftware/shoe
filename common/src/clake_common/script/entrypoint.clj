@@ -21,13 +21,30 @@
 (defn lookup-task-cli-specs
   "Returns the CLI spec for `task-name-str` if it is available."
   [qualified-task]
-  (or (get tasks/cli-specs qualified-task)
-      (when-let [v (resolve qualified-task)]
-        (:clake/cli-specs (meta v)))))
+  (conj
+    (or (get tasks/cli-specs qualified-task)
+        (when-let [v (resolve qualified-task)]
+          (:clake/cli-specs (meta v))))
+    tasks/cli-task-help-option))
+
+(defn validate-task-cli-opts2
+  [args {:keys [clake/cli-specs doc] :as x}]
+  (let [_ (prn cli-specs)
+        cli-specs (conj cli-specs ["-h" "--help" "Print the help menu for this task."])
+        _ (prn cli-specs)
+        {:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
+    (cond
+      (:help options)
+      (shell/exit true (str/join "\n"
+                                 (cond-> []
+                                   doc (conj "")
+                                   true (conj "Options:"
+                                              summary))))
+      errors (shell/exit false (str/join "\n" errors))
+      :else arguments)))
 
 (defn validate-task-cli-opts
-  [config args cli-specs]
-  ;; TODO: merge in a default help menu here
+  [args cli-specs]
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
     (cond
       errors (shell/exit false (str/join \n errors))
@@ -68,15 +85,9 @@
                  extra-deps)}
    :eval-code `[(require 'clake-common.task)
                 (require '~(symbol (namespace qualified-task)))
-                (let [v# (resolve '~qualified-task)
-                      r# (clake-common.task/execute-task-handler
-                           ~qualified-task
-                           (:clake/cli-specs (meta v#))
-                           ~cli-args
-                           @v#)]
-                  (shell/system-exit (if (shell/exit? r#)
-                                       r#
-                                       (shell/exit true))))]
+                (clake-common.task/execute-task-handler
+                  '~qualified-task
+                  ~cli-args)]
    :cmd-opts  {:stdio ["pipe" "inherit" "inherit"]}})
 
 (defn parse-cli-args
@@ -90,8 +101,7 @@
       (let [task-name-str (first args)]
         (if-let [qualified-task (qualify-task config (symbol task-name-str))]
           (let [args-without-task (rest args)
-                task-cli-specs (lookup-task-cli-specs qualified-task)
-                next-args-or-exit (validate-task-cli-opts config args-without-task task-cli-specs)]
+                next-args-or-exit (validate-task-cli-opts args-without-task (lookup-task-cli-specs qualified-task))]
             (if-not (shell/exit? next-args-or-exit)
               (recur next-args-or-exit (conj cmds {:task qualified-task
                                                    :args (vec (take (- (count args-without-task)
