@@ -2,12 +2,15 @@
   (:require
     [clojure.string :as str]
     #?(:clj
+    [clojure.java.io :as io])
+    #?(:clj
     [clojure.edn :as edn] :cljs [cljs.tools.reader.edn :as edn])
     #?(:cljs ["child_process" :as proc])
     [clake-common.log :as log])
   #?(:clj
      (:import (java.nio.file Files)
-              (java.nio.file.attribute FileAttribute))))
+              (java.nio.file.attribute FileAttribute)
+              (java.lang ProcessBuilder$Redirect))))
 
 (defn exit?
   "Returns true if `x` is an exit map."
@@ -53,21 +56,39 @@
    ;; we need to write out own shell function instead of Clojure's because of
    ;; https://dev.clojure.org/jira/browse/CLJ-959
    (defn spawn-sync-jvm
-     [args]
-     (let [proc (.exec (Runtime/getRuntime) ^"[Ljava.lang.String;" (into-array String args))]
-       (with-open [stdout (.getInputStream proc)
-                   stderr (.getErrorStream proc)]
-         (let [status (.waitFor proc)]
-           {:exit status
-            :out  (slurp stdout)
-            :err  (slurp stderr)})))))
+     ([args] (spawn-sync-jvm args nil))
+     ([args {:keys [stdio dir]}]
+      (let [[stdin-opt stdout-opt stderr-opt] (let [[stdin stdout stderr] stdio]
+                                                [(or stdin "pipe")
+                                                 (or stdout "pipe")
+                                                 (or stderr "pipe")])
+            builder (ProcessBuilder. ^"[Ljava.lang.String;" (into-array String args))]
+        ;; configure builder
+        (case stdin-opt
+          "pipe" (.redirectInput builder ProcessBuilder$Redirect/PIPE)
+          "inherit" (.redirectInput builder ProcessBuilder$Redirect/INHERIT))
+        (case stdout-opt
+          "pipe" (.redirectOutput builder ProcessBuilder$Redirect/PIPE)
+          "inherit" (.redirectOutput builder ProcessBuilder$Redirect/INHERIT))
+        (case stderr-opt
+          "pipe" (.redirectError builder ProcessBuilder$Redirect/PIPE)
+          "inherit" (.redirectError builder ProcessBuilder$Redirect/INHERIT))
+        (when dir
+          (.directory builder (io/file dir)))
+        (let [proc (.start builder)]
+          (with-open [stdout (.getInputStream proc)
+                      stderr (.getErrorStream proc)]
+            (let [status (.waitFor proc)]
+              {:exit status
+               :out  (slurp stdout)
+               :err  (slurp stderr)})))))))
 
 (defn spawn-sync
   ([command] (spawn-sync command nil))
   ([command args] (spawn-sync command args nil))
   ([command args {:keys [dir] :as opts}]
    (let [args (filter some? args)]
-     #?(:clj  (spawn-sync-jvm (concat [command] (map str args)))
+     #?(:clj  (spawn-sync-jvm (concat [command] (map str args)) opts)
         :cljs (let [result (proc/spawnSync command
                                            (to-array args)
                                            (clj->js (cond-> {}
@@ -82,6 +103,7 @@
 (defn clojure-command
   ([args] (clojure-command args nil))
   ([args opts]
+   (prn args)
    (spawn-sync "clojure" args opts)))
 
 (defn clojure-deps-command
