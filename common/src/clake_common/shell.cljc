@@ -103,7 +103,6 @@
 (defn clojure-command
   ([args] (clojure-command args nil))
   ([args opts]
-   (prn args)
    (spawn-sync "clojure" args opts)))
 
 (defn clojure-deps-command
