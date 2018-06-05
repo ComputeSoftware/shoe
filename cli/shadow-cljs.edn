@@ -5,5 +5,4 @@
                    :output-to "build/clake.js"}
           :test   {:target    :node-test
                    :output-to "build-test/clake-tests.js"
-                   :ns-regexp "-test$"
-                   :autorun   true}}}
+                   :ns-regexp "-test$"}}}

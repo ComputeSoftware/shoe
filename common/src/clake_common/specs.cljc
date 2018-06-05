@@ -1,4 +1,4 @@
-(ns clake-tasks.specs
+(ns clake-common.specs
   (:require
     [clojure.spec.alpha :as s]))
 
@@ -7,12 +7,16 @@
 ;; ==========================
 (s/def :clake-config/task-opts (s/map-of (s/or :sym symbol? :string string?) map?))
 (s/def :clake-config/target-path string?)
+(s/def :clake-config/refer-tasks (s/map-of symbol? qualified-symbol?))
 (s/def :clake/config (s/keys :opt-un [:clake-config/task-opts
-                                      :clake-config/target-path]))
+                                      :clake-config/target-path
+                                      :clake-config/refer-tasks]))
 
 ;; ==========================
 ;; Task context
 ;; ==========================
+;; fully qualified task name
+(s/def :clake-task/qualified-name qualified-symbol?)
 ;; task name
 (s/def :clake-task/name symbol?)
 ;; the actual task function
@@ -21,7 +25,8 @@
 (s/def :clake-task/cli-specs vector?)
 ;; the parsed cli opts map
 (s/def :clake-task/cli-opts map?)
-(s/def :clake/task-context (s/keys :req [:clake-task/name
+(s/def :clake/task-context (s/keys :req [:clake-task/qualified-name
+                                         :clake-task/name
                                          :clake-task/fn
                                          :clake-task/cli-specs]
                                    :opt [:clake-task/cli-opts]))

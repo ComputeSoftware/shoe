@@ -30,6 +30,7 @@ jobs:
           command: |
             cd cli
             npx shadow-cljs release test
+            node build-test/clake-tests.js
 
   build-cli:
     <<: *defaults
@@ -97,7 +98,7 @@ jobs:
             git push
             git push --tags
 
-  test-tasks:
+  test-jvm-code:
     <<: *defaults
     steps:
       - checkout
@@ -111,11 +112,10 @@ jobs:
             chmod +x clake.js
             sudo mv clake.js /usr/local/bin/clake
       - run:
-          name: Run tests
+          name: Test common
           command: |
-            cd tasks
-            clake test
-
+            cd common
+            clake -A :test test
 
 workflows:
   version: 2
@@ -129,12 +129,12 @@ workflows:
           requires:
             - test-cli
             - build-cli
-            - test-tasks
+            - test-jvm-code
           filters:
             branches:
               only:
                 - master
-      - test-tasks:
+      - test-jvm-code:
           context: clojure-env
           requires:
             - test-cli

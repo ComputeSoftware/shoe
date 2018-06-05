@@ -1,6 +1,7 @@
 (ns clake-tasks.api
   (:require
     [clojure.spec.alpha :as s]
+    [clojure.set :as sets]
     #?(:clj
     [clake-tasks.util :as util])))
 
@@ -12,19 +13,32 @@
                              :argv vector?
                              :body (s/* any?)))
 
+(defn get-task-opts
+  [context qualified-task-name]
+  (let [config (:clake/config context)
+        qualified-lookup (sets/map-invert (:refer-tasks config))
+        task-name-key (get qualified-lookup qualified-task-name qualified-task-name)
+        config-opts (get-in config [:task-opts task-name-key])
+        cli-opts (-> (filter #(= qualified-task-name (:clake-task/qualified-name %))
+                             (:clake/tasks context))
+                     (first)
+                     :clake-task/cli-opts)]
+    (merge config-opts cli-opts)))
+
 #?(:clj
    (defmacro deftask
      [task-name & args]
      (let [{:keys [docstring attr-map argv body]} (s/conform ::deftask-args args)]
-       (let [shutdown-fn (:clake/shutdown-fn attr-map)]
+       (let [shutdown-fn (:clake/shutdown-fn attr-map)
+             qualified-task-name (symbol (str *ns*) (str task-name))]
          `(do
             ~@(when shutdown-fn
                 [`(util/add-shutdown-hook ~shutdown-fn)])
             (defn ~task-name
               ~@(when docstring [docstring])
               ~(select-keys attr-map [:clake/cli-specs])
-              ~argv
-              ~@body))))))
+              [_# context#]
+              ((fn ~argv ~@body) (get-task-opts context# '~qualified-task-name) context#)))))))
 
 (defn exit?
   [x]

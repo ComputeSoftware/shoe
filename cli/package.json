@@ -5,6 +5,6 @@
     "clake": "./build/clake.js"
   },
   "devDependencies": {
-    "shadow-cljs": "2.3.21"
+    "shadow-cljs": "2.3.32"
   }
 }

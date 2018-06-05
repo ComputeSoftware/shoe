@@ -2,9 +2,18 @@
 
 [![CircleCI](https://circleci.com/gh/ComputeSoftware/clake.svg?style=svg)](https://circleci.com/gh/ComputeSoftware/clake)
 
-Clojure make.
+Clojure make - a simple Clojure build tool, based on tools-deps (deps.edn).
 
-## Installation
+## Rationale
+
+The first goal of a simple build tool should be to aggregate all the common 
+tasks (uberjar, pom, test, etc) into one repo so they are easy to use. The goal 
+of the Clake CLI should be to create a way to combine those tasks into one 
+command and to provide a way to set default options to each of those tasks.
+
+## Installation & Upgrading
+
+To install or upgrade Clake, run this command.
 
 ```bash
 npm install -g clake-cli
@@ -42,6 +51,7 @@ should probably have a way of communicating data to the cleanup function.
 - use uber-shade on clake deps so they are "hidden" on the classpath (or look into classpath isolation)
 - use color in console printing
 - Able to add aliases ad hoc via cli
+- Look into GraalVM to see if that would make everything easier
 
 ### Tasks
 
@@ -52,4 +62,3 @@ should probably have a way of communicating data to the cleanup function.
 - show out of date deps
 - create new project
 - lein javac
-- update clake (do we need this or just use NPM?)

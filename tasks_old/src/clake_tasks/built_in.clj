@@ -5,12 +5,15 @@
     [clojure.test :as clj-test]
     [clojure.pprint :as pprint]
     [clojure.java.io :as io]
+    [clojure.string :as str]
     [clojure.tools.nrepl.server :as nrepl-server]
     [clake-tasks.api :as api]
     [pjstadig.humane-test-output :as humane-test]
     [clake-tasks.util :as util]
     [clake-tasks.log :as log]
     [clake-tasks.tasks.uberjar :as uberjar-impl]
+    [clake-tasks.tasks.jar :as jar-impl]
+    [clake-tasks.tasks.pom :as pom-impl]
     [clake-tasks.tasks.project-clj :as project-cli-impl])
   (:import (java.nio.file Files)))
 
@@ -51,11 +54,29 @@
     (when (not= 0 fail)
       (api/exit false))))
 
+(api/deftask pom
+  ""
+  {:clake/cli-specs [["-p" "--project STR" "Project name used in generated pom.xml."
+                      :parse-fn (fn [s]
+                                  (let [[group-id artifact-id] (str/split s #"\/" 2)
+                                        artifact-id (or artifact-id group-id)]
+                                    (symbol group-id artifact-id)))]
+                     ["-v" "--version STR" "Version used in generated pom.xml."
+                      :default "0.1.0"]]}
+  [opts context]
+  (pom-impl/pom opts context))
+
 (api/deftask uberjar
   ""
   {:clake/cli-specs []}
   [opts context]
   (uberjar-impl/uberjar opts context))
+
+(api/deftask jar
+  ""
+  {:clake/cli-specs []}
+  [opts context]
+  (jar-impl/jar opts context))
 
 (api/deftask project-clj
   "Generate a project.clj from your deps.edn using lein-tools-deps."

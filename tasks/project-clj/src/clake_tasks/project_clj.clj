@@ -1,11 +1,12 @@
-(ns clake-tasks.tasks.project-clj
+(ns clake-tasks.project-clj
   (:require
     [clojure.pprint :as pp]
-    [hara.io.file :as fs]
-    [clake-tasks.util :as util]))
+    [clojure.java.io :as io]
+    [clojure.string :as str])
+  (:import (java.io File)))
 
 (defn generate-project-clj-string
-  [project-name lein-tools-deps-version deps-edn-path]
+  [project-name lein-tools-deps-version]
   (with-out-str
     (pp/pprint
       (list
@@ -15,15 +16,17 @@
         :license {:name "Eclipse Public License"
                   :url  "http://www.eclipse.org/legal/epl-v10.html"}
         :plugins [['lein-tools-deps lein-tools-deps-version]]
-        ;:lein-tools-deps/config {:config-files [:system :home deps-edn-path]}
-        :tools/deps [:system :home deps-edn-path]))))
+        :lein-tools-deps/config {:config-files [:install :user :project]}))))
 
 (defn project-clj
-  [opts ctx]
+  [_]
   (let [cwd (System/getProperty "user.dir")
-        parent-dir-name (util/file-name cwd)
+        parent-dir-name (last (str/split cwd (re-pattern File/separator)))
         project-string (generate-project-clj-string
                          parent-dir-name
-                         "0.3.0-SNAPSHOT"
-                         (str (fs/path cwd "deps.edn")))]
-    (spit (str (fs/path cwd "project.clj")) project-string)))
+                         "0.4.0-SNAPSHOT")]
+    (spit (io/file cwd "project.clj") project-string)))
+
+(defn -main
+  [& args]
+  (project-clj nil))

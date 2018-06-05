@@ -1,4 +1,4 @@
-(ns clake-tasks.tasks.uberjar
+(ns clake-tasks.uberjar
   (:require
     [clojure.string :as str]
     [clojure.set :as sets]
@@ -6,8 +6,9 @@
     [clojure.java.shell :as sh]
     [hara.io.file :as fs]
     [hara.io.archive :as archive]
-    [clake-tasks.util :as util]
-    [clake-tasks.log :as log]))
+    [clake-common.util :as util]
+    [clake-common.shell :as shell]
+    [clake-common.log :as log]))
 
 (defn trim-beginning-slash
   [s]
@@ -125,7 +126,8 @@
   [aliases]
   ;; should probably replace this we an actual API call to tools-deps. there's
   ;; no easy built-in function to do this right now though.
-  (let [{:keys [exit out]} (sh/sh "clojure" (str "-A" (str/join aliases)) "-Spath")]
+  (let [{:keys [exit out]} (shell/clojure-deps-command {:aliases aliases
+                                                        :command :path})]
     (when (= 0 exit)
       (str/trim-newline out))))
 
@@ -140,9 +142,8 @@
         (generate-manifest-string {:main-class (str (munge main))})))
 
 (defn uberjar-compile
-  [{:keys [main aot aliases]} {:keys [config deps-edn]}]
-  (let [target-path (:target-path config)
-        compile-path (fs/path target-path "classes")
+  [{:keys [main aot aliases target-path deps-edn]}]
+  (let [compile-path (fs/path target-path "classes")
         namespaces-in-project (set (util/namespaces-in-project deps-edn aliases))
         namespaces-to-compile (set (if (= aot :all) namespaces-in-project aot))]
     (when (and (contains? namespaces-in-project main)
@@ -155,12 +156,12 @@
         (compile ns-sym)))))
 
 (defn uberjar
-  [{:keys [aliases main jar-name] :as opts} {:keys [config] :as ctx}]
-  (let [target-path (:target-path config)
-        cp-vec (parse-classpath-string (classpath-string aliases))
+  [;{:keys [aliases main jar-name] :as opts} {:keys [config] :as ctx}
+   {:keys [target-path aliases main jar-name] :as opts}]
+  (let [cp-vec (parse-classpath-string (classpath-string aliases))
         jar-contents-path (fs/path target-path "jar-contents")
         _ (explode-classpath cp-vec jar-contents-path)]
-    (uberjar-compile opts ctx)
+    (uberjar-compile opts)
     ;; copy compiled classes into the jar contents directory
     (fs/move (fs/path target-path "classes") jar-contents-path)
     ;; add the manifest to the jar
