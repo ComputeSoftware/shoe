@@ -12,7 +12,6 @@
 
 (def config-name "clake.edn")
 (def jvm-entrypoint-ns 'clake-tasks.script.entrypoint)
-(def clake-jvm-deps-alias :clake-jvm-deps)
 (macros/def-env-var circle-ci-sha1 "CIRCLE_SHA1")
 
 (def cli-options
@@ -75,14 +74,6 @@
       :else {:clake/task-cli-args arguments
              :clake/cli-opts      options})))
 
-(defn run-entrypoint-command
-  [aliases args]
-  {:deps-edn {:aliases {clake-jvm-deps-alias
-                        {:extra-deps {'clake-common {:local/root "../tasks"}}}}}
-   :aliases  (conj aliases clake-jvm-deps-alias)
-   :main     "clake-common.script.entrypoint"
-   :args     args})
-
 (defn resolve-clake-common-coordinate
   [{:keys [local sha]}]
   (let [sha (or sha circle-ci-sha1)]
@@ -97,8 +88,8 @@
   [{:clake/keys [task-cli-args cli-opts]}]
   (if-let [clake-common-coord (resolve-clake-common-coordinate cli-opts)]
     (let [r (shell/clojure-deps-command
-              {:deps-edn {:aliases {clake-jvm-deps-alias {:extra-deps {'clake-common clake-common-coord}}}}
-               :aliases  (conj (or (:aliases cli-opts) []) clake-jvm-deps-alias)
+              {:deps-edn {:deps {'clake-common clake-common-coord}}
+               :aliases  (:aliases cli-opts)
                :main     "clake-common.script.entrypoint"
                :args     {:extra-deps {'clake-common clake-common-coord}
                           :args       task-cli-args
