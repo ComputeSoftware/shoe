@@ -83,7 +83,7 @@
    :main     "clake-common.script.entrypoint"
    :args     args})
 
-(defn resolve-clake-common-coordiante
+(defn resolve-clake-common-coordinate
   [{:keys [local sha]}]
   (let [sha (or sha circle-ci-sha1)]
     (cond
@@ -95,7 +95,7 @@
 
 (defn run-entrypoint
   [{:clake/keys [task-cli-args cli-opts]}]
-  (if-let [clake-common-coord (resolve-clake-common-coordiante cli-opts)]
+  (if-let [clake-common-coord (resolve-clake-common-coordinate cli-opts)]
     (let [r (shell/clojure-deps-command
               {:deps-edn {:aliases {clake-jvm-deps-alias {:extra-deps {'clake-common clake-common-coord}}}}
                :aliases  (conj (or (:aliases cli-opts) []) clake-jvm-deps-alias)
