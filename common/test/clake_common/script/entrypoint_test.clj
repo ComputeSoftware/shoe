@@ -2,7 +2,8 @@
   (:require
     [clojure.test :refer :all]
     [clake-common.shell :as shell]
-    [clake-common.script.entrypoint :as enter]))
+    [clake-common.script.entrypoint :as enter]
+    [clojure.string :as str]))
 
 (deftest qualify-task-test
   (testing "Qualified task is returned if passed in"
@@ -45,3 +46,16 @@
                                  ["fruit" "-b"]))))
   (testing "Nonexistent option results in an exit map."
     (is (shell/exit? (enter/parse-cli-args {} ["repl" "--teapot"])))))
+
+(deftest task-clojure-command-test
+  (let [task-deps (fn [deps]
+                    (-> (enter/task-clojure-command
+                          'clake-task.repl/repl ["test"] deps [])
+                        (get-in [:deps-edn :deps 'clake-tasks.repl])))]
+    (testing ":local/root relative directory"
+      (is (str/ends-with? (:local/root (task-deps {'clake-common {:local/root "../../common"}}))
+                          "/tasks/repl")))
+    (testing "git coord"
+      (is (= "sha"
+             (:sha (task-deps {'clake-common {:git/url ""
+                                              :sha     "sha"}})))))))

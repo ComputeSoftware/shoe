@@ -1,10 +1,12 @@
 (ns clake-common.script.entrypoint
   (:require
     [clojure.string :as str]
+    [clojure.java.io :as io]
     [clojure.edn :as edn]
     [clojure.tools.cli :as cli]
     [clake-common.shell :as shell]
-    [clake-common.script.built-in-tasks :as tasks]))
+    [clake-common.script.built-in-tasks :as tasks])
+  (:import (java.nio.file Paths)))
 
 (defn qualify-task
   "Returns a qualified symbol pointing to the task function or `nil` if
@@ -32,24 +34,50 @@
       :else arguments)))
 
 (defn task-clojure-command
-  [qualified-task cli-args clake-sha]
+  [qualified-task cli-args extra-deps aliases]
   ;; we cant simply eval (qualified-task parsed-cli-opts) because the parsed CLI
   ;; opts may not be serializable as a string. Instead we parse the CLI opts at
   ;; runtime a second time and then call the function.
-  {:deps      (if (tasks/built-in? qualified-task)
-                {:deps {(symbol (str "clake-tasks." (name qualified-task)))
+  {:aliases   aliases
+   :deps-edn  {:deps
+               (if (tasks/built-in? qualified-task)
+                 (let [common-dep (get extra-deps 'clake-common)
+                       task-dep-name (symbol (str "clake-tasks." (name qualified-task)))]
+                   (merge
+                     extra-deps
+                     {task-dep-name
+                      (cond
+                        (:local/root common-dep)
+                        {:local/root (.getAbsolutePath
+                                       ;; we are passed the location of the /common folder
+                                       ;; and need to determine the absolute path for the root
+                                       ;; of the project
+                                       (io/file (-> (:local/root common-dep)
+                                                    (Paths/get (make-array String 0))
+                                                    (.toAbsolutePath)
+                                                    (.normalize)
+                                                    (.toFile)
+                                                    (.getParentFile)
+                                                    (.getAbsolutePath))
+                                                "tasks"
+                                                (name qualified-task)))}
+                        (:git/url common-dep)
                         {:git/url   "https://github.com/ComputeSoftware/clake"
                          :deps/root (str "tasks/" (name qualified-task))
-                         :sha       clake-sha}}}
-                {})
+                         :sha       (:sha common-dep)})}))
+                 extra-deps)}
    :eval-code `[(require 'clake-common.task)
-                (require ~(symbol (namespace qualified-task)))
-                (let [v# (resolve ~qualified-task)]
-                  (clake-common.task/execute-task-handler
-                    ~qualified-task
-                    (:clake/cli-specs (meta v#))
-                    ~cli-args
-                    @v#))]})
+                (require '~(symbol (namespace qualified-task)))
+                (let [v# (resolve '~qualified-task)
+                      r# (clake-common.task/execute-task-handler
+                           ~qualified-task
+                           (:clake/cli-specs (meta v#))
+                           ~cli-args
+                           @v#)]
+                  (shell/system-exit (if (shell/exit? r#)
+                                       r#
+                                       (shell/exit true))))]
+   :cmd-opts  {:stdio ["pipe" "inherit" "inherit"]}})
 
 (defn parse-cli-args
   "Returns a vector of maps with keys :task and :args. :task is a qualified symbol
@@ -74,19 +102,24 @@
       cmds)))
 
 (defn execute
-  [args]
+  [{:keys [extra-deps args aliases]}]
   (let [config {}
         parsed-args (parse-cli-args config args)]
-    (loop [parsed-args parsed-args]
-      (if-not (empty? parsed-args)
-        (let [{:keys [task args]} (first parsed-args)
-              result (shell/clojure-deps-command (task-clojure-command task args))]
-          (if-not (shell/exit? result)
-            (recur (rest parsed-args))
-            result))
-        (shell/exit true)))))
+    (if-not (shell/exit? parsed-args)
+      (loop [parsed-args parsed-args]
+        (if-not (empty? parsed-args)
+          (let [{:keys [task args]} (first parsed-args)
+                result (shell/clojure-deps-command (task-clojure-command task args extra-deps aliases))]
+            (if (shell/status-success? result)
+              (do
+                (println (:out result))
+                (recur (rest parsed-args)))
+              (shell/exit (:exit result) (:err result))))
+          (shell/exit true)))
+      parsed-args)))
 
 (defn -main
   [& args]
-  (prn (edn/read-string (first args)))
-  #_(shell/system-exit (execute args)))
+  (let [init-opts (edn/read-string (first args))
+        result (execute init-opts)]
+    (shell/system-exit result)))

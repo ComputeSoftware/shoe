@@ -100,8 +100,9 @@
               {:deps-edn {:aliases {clake-jvm-deps-alias {:extra-deps {'clake-common clake-common-coord}}}}
                :aliases  (conj (or (:aliases cli-opts) []) clake-jvm-deps-alias)
                :main     "clake-common.script.entrypoint"
-               :args     {:coord clake-common-coord
-                          :args  task-cli-args}
+               :args     {:extra-deps {'clake-common clake-common-coord}
+                          :args       task-cli-args
+                          :aliases    (:aliases cli-opts)}
                :cmd-opts {:stdio ["ignore" "inherit" "inherit"]}})]
       (shell/exit (:exit r)))
     (shell/exit false "Could not resolve clake-common.")))
