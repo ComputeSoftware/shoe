@@ -79,7 +79,7 @@ jobs:
           command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
 
       - run:
-          name: Bump version, commit, and create tag
+          name: Bump version, commit, create tag, push
           command: |
             cd cli
             export NEW_VERSION=$(npm version patch)
@@ -87,16 +87,14 @@ jobs:
             git add .
             git commit -m "$NEW_VERSION" -m "[ci skip]"
             git tag -a $NEW_VERSION -m ""
+            git pull
+            git push
+            git push --tags
       - run:
           name: NPM publish
           command: |
             cd cli
             npm publish
-      - run:
-          name: Push commits and tags
-          command: |
-            git push
-            git push --tags
 
   test-jvm-code:
     <<: *defaults
