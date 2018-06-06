@@ -94,6 +94,10 @@ clake uberjar # package the project and dependencies as standalone jar
 clake test # run all tests in the project
 ```
 
+### Custom tasks
+
+TODO: write this
+
 ### Configuration
 
 Clake's configuration is stored in `clake.edn` which is loaded from the directory where you launched `clake`.
