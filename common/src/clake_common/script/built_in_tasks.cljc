@@ -2,9 +2,10 @@
 
 ;; TODO: Ideally this would be auto-generated
 (def default-refer-tasks
-  '{repl    clake-tasks.repl/repl
-    test    clake-tasks.test/test
-    uberjar clake-tasks.uberjar/uberjar})
+  '{repl        clake-tasks.repl/repl
+    test        clake-tasks.test/test
+    uberjar     clake-tasks.uberjar/uberjar
+    project-clj clake-tasks.project-clj/project-clj})
 
 (def built-in-tasks (into #{} (vals default-refer-tasks)))
 
