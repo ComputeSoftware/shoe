@@ -15,7 +15,7 @@
 (deftest resolve-clake-common-coordinate-test
   (with-redefs [cli/circle-ci-sha1 nil]
     (is (nil? (cli/resolve-clake-common-coordinate {}))))
-  (is (= {:local/root "foo"}
+  (is (= {:local/root "foo/common"}
          (cli/resolve-clake-common-coordinate {:local "foo"})))
   (is (= {:git/url   "https://github.com/ComputeSoftware/clake"
           :sha       "foo"
