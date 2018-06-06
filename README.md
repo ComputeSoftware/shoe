@@ -19,6 +19,8 @@ At its core, Clake is simply a collection of functions that can be easily run us
 
 All the built in functions are located in the `tasks` directory and contained within their own folder. For example, the `repl` task source code is located at `tasks/repl`. The code is structured in this way to make running from the Clojure CLI easy. This is best shown by example. Let's launch a REPL using the `repl` task.
 
+### Starting a REPL with Clojure CLI
+
 ```bash
 $ clojure -Sdeps '{:deps {clake-tasks.repl {:git/url "https://github.com/ComputeSoftware/clake" :sha "873e1a2e50a9dd961a0a251a12aed9e13b538416" :deps/root "tasks/repl"}}}' -m clake-tasks.repl
 nREPL server started on port 45023
@@ -63,24 +65,43 @@ To install or upgrade Clake, run this command.
 npm install -g clake-cli
 ```
 
-## Basic Usage
+### Starting a REPL with Clake
+
+Remember all the [configuration](#starting-a-repl-with-clojure-cli) we needed to do to start a REPL via the Clojure CLI? Clake does all the automatically, exposing the function call as a command line task. 
+
+```bash
+$ clake repl
+nREPL server started on port 36389
+```
+
+In the background Clake is parsing the command line arguments passed to it, resolving the string `"repl"` to an actual function call, and passing parsed command line options to that resolved function (it executes the function with  `clojure` in a sub-process, isolating dependencies on the task level). For those curious, dive deeper in the [implementation details](#implementation-details) section.
+
+As you saw with the launching a REPL using the Clojure CLI, you're also able to print a help menu for tasks via the Clake CLI.
+
+```bash
+$ clake repl --help
+```
+
+All tasks, built-in and user defined, always have a help menu.
+
+### Basic Usage
 
 ```bash
 clake repl # Launch a nREPL
 
 clake uberjar # package the project and dependencies as standalone jar
 
-clake project-clj # Generate a project.clj file that uses lein-tools-deps
-
 clake test # run all tests in the project
 ```
 
+### Configuration
 
-## Configuration
+Clake's configuration is stored in `clake.edn` which is loaded from the directory where you launched `clake`.
 
-Clake's configuration is stored in `clake.edn` which should be located at the 
-root of your project's directory. 
 
+### Implementation Details
+
+TODO: write this
 
 ## TODO
 
@@ -88,14 +109,10 @@ root of your project's directory.
 - CLI opts Spec support
 - Tasks need to be able to register a cleanup function called on exit. Task functions
 should probably have a way of communicating data to the cleanup function.
-- Help menu for sub-commands
 - Ability to list all tasks registered
 - Validate config with Spec
 - when dynamic deps are added to tools-deps we can have task level dependencies
-- use uber-shade on clake deps so they are "hidden" on the classpath (or look into classpath isolation)
 - use color in console printing
-- Able to add aliases ad hoc via cli
-- Look into GraalVM to see if that would make everything easier
 
 ### Tasks
 
