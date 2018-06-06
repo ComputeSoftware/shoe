@@ -1,6 +1,6 @@
 {
   "name": "clake-cli",
-  "version": "1.0.11",
+  "version": "1.0.12",
   "bin": {
     "clake": "./build/clake.js"
   },
