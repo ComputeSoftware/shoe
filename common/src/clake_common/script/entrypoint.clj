@@ -32,7 +32,7 @@
 
 (defn validate-task-cli-opts
   [args cli-specs]
-  (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
+  (let [{:keys [options arguments errors summary]} (cli/parse-opts args (conj cli-specs tasks/cli-task-help-option) :in-order true)]
     (cond
       errors (shell/exit false (str/join \n errors))
       :else arguments)))
