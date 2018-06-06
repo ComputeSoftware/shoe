@@ -6,7 +6,8 @@
     [clojure.tools.cli :as cli]
     [clake-common.shell :as shell]
     [clake-common.script.built-in-tasks :as tasks])
-  (:import (java.nio.file Paths)))
+  (:import (java.nio.file Paths)
+           (java.io FileNotFoundException)))
 
 (defn qualify-task
   "Returns a qualified symbol pointing to the task function or `nil` if
@@ -21,27 +22,13 @@
 (defn lookup-task-cli-specs
   "Returns the CLI spec for `task-name-str` if it is available."
   [qualified-task]
-  (conj
-    (or (get tasks/cli-specs qualified-task)
-        (when-let [v (resolve qualified-task)]
-          (:clake/cli-specs (meta v))))
-    tasks/cli-task-help-option))
-
-(defn validate-task-cli-opts2
-  [args {:keys [clake/cli-specs doc] :as x}]
-  (let [_ (prn cli-specs)
-        cli-specs (conj cli-specs ["-h" "--help" "Print the help menu for this task."])
-        _ (prn cli-specs)
-        {:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
-    (cond
-      (:help options)
-      (shell/exit true (str/join "\n"
-                                 (cond-> []
-                                   doc (conj "")
-                                   true (conj "Options:"
-                                              summary))))
-      errors (shell/exit false (str/join "\n" errors))
-      :else arguments)))
+  (try
+    (require (symbol (namespace qualified-task)))
+    (if-let [v (resolve qualified-task)]
+      (conj (:clake/cli-specs (meta v)) tasks/cli-task-help-option)
+      (shell/exit false (str "Could not resolve task " qualified-task ".")))
+    (catch FileNotFoundException ex
+      (shell/exit false (.getMessage ex)))))
 
 (defn validate-task-cli-opts
   [args cli-specs]
@@ -49,6 +36,32 @@
     (cond
       errors (shell/exit false (str/join \n errors))
       :else arguments)))
+
+(defn built-in-task-coord
+  "Returns the coordinate for the built-in task with the qualified name
+  `qualified-task`."
+  [qualified-task common-dep]
+  (let [task-dep-name (symbol (str "clake-tasks." (name qualified-task)))]
+    {task-dep-name
+     (cond
+       (:local/root common-dep)
+       {:local/root (.getAbsolutePath
+                      ;; we are passed the location of the /common folder
+                      ;; and need to determine the absolute path for the root
+                      ;; of the project
+                      (io/file (-> (:local/root common-dep)
+                                   (Paths/get (make-array String 0))
+                                   (.toAbsolutePath)
+                                   (.normalize)
+                                   (.toFile)
+                                   (.getParentFile)
+                                   (.getAbsolutePath))
+                               "tasks"
+                               (name qualified-task)))}
+       (:git/url common-dep)
+       {:git/url   "https://github.com/ComputeSoftware/clake"
+        :deps/root (str "tasks/" (name qualified-task))
+        :sha       (:sha common-dep)})}))
 
 (defn task-clojure-command
   [qualified-task cli-args extra-deps aliases]
@@ -58,30 +71,8 @@
   {:aliases   aliases
    :deps-edn  {:deps
                (if (tasks/built-in? qualified-task)
-                 (let [common-dep (get extra-deps 'clake-common)
-                       task-dep-name (symbol (str "clake-tasks." (name qualified-task)))]
-                   (merge
-                     extra-deps
-                     {task-dep-name
-                      (cond
-                        (:local/root common-dep)
-                        {:local/root (.getAbsolutePath
-                                       ;; we are passed the location of the /common folder
-                                       ;; and need to determine the absolute path for the root
-                                       ;; of the project
-                                       (io/file (-> (:local/root common-dep)
-                                                    (Paths/get (make-array String 0))
-                                                    (.toAbsolutePath)
-                                                    (.normalize)
-                                                    (.toFile)
-                                                    (.getParentFile)
-                                                    (.getAbsolutePath))
-                                                "tasks"
-                                                (name qualified-task)))}
-                        (:git/url common-dep)
-                        {:git/url   "https://github.com/ComputeSoftware/clake"
-                         :deps/root (str "tasks/" (name qualified-task))
-                         :sha       (:sha common-dep)})}))
+                 (let [common-dep (get extra-deps 'clake-common)]
+                   (merge extra-deps (built-in-task-coord qualified-task common-dep)))
                  extra-deps)}
    :eval-code `[(require 'clake-common.task)
                 (require '~(symbol (namespace qualified-task)))
@@ -101,25 +92,31 @@
       (let [task-name-str (first args)]
         (if-let [qualified-task (qualify-task config (symbol task-name-str))]
           (let [args-without-task (rest args)
-                next-args-or-exit (validate-task-cli-opts args-without-task (lookup-task-cli-specs qualified-task))]
-            (if-not (shell/exit? next-args-or-exit)
-              (recur next-args-or-exit (conj cmds {:task qualified-task
-                                                   :args (vec (take (- (count args-without-task)
-                                                                       (count next-args-or-exit))
-                                                                    args-without-task))}))
-              next-args-or-exit))
+                cli-specs (lookup-task-cli-specs qualified-task)]
+            (if-not (shell/exit? cli-specs)
+              (let [next-args-or-exit (validate-task-cli-opts args-without-task cli-specs)]
+                (if-not (shell/exit? next-args-or-exit)
+                  (recur next-args-or-exit (conj cmds {:task qualified-task
+                                                       :args (vec (take (- (count args-without-task)
+                                                                           (count next-args-or-exit))
+                                                                        args-without-task))}))
+                  next-args-or-exit))
+              cli-specs))
           (shell/exit false (str "Could not resolve task " task-name-str "."))))
       cmds)))
 
 (defn execute
   [{:keys [extra-deps args aliases]}]
+  ;; TODO: load config
   (let [config {}
         parsed-args (parse-cli-args config args)]
     (if-not (shell/exit? parsed-args)
+      ;; loop to run the commands parsed from the cli args
       (loop [parsed-args parsed-args]
         (if-not (empty? parsed-args)
           (let [{:keys [task args]} (first parsed-args)
                 result (shell/clojure-deps-command (task-clojure-command task args extra-deps aliases))]
+            ;; stop task execution if one of the tasks fails with a non-zero exit
             (if (shell/status-success? result)
               (recur (rest parsed-args))
               (shell/exit (:exit result) (:err result))))

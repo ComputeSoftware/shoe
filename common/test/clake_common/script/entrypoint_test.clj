@@ -25,37 +25,40 @@
     (shell/exit false)
     (shell/exit true apples)))
 
+(defn my-task2
+  {:clake/cli-specs []}
+  [_]
+  true)
+
 (deftest lookup-task-cli-specs-test
   (is (enter/lookup-task-cli-specs 'clake-tasks.repl/repl))
   (is (enter/lookup-task-cli-specs `my-custom-task)))
 
 (deftest parse-cli-args-test
-  (is (= [{:task 'clake-tasks.repl/repl :args []}]
-         (enter/parse-cli-args {} ["repl"])))
-  (is (= [{:task 'clake-tasks.repl/repl :args ["-p" "8888"]}]
-         (enter/parse-cli-args {} ["repl" "-p" "8888"])))
-  (is (= [{:task 'clake-tasks.test/test :args []}
-          {:task 'clake-tasks.repl/repl :args ["-p" "8888"]}]
-         (enter/parse-cli-args {} ["test" "repl" "-p" "8888"])))
+  (let [config {:refer-tasks {'task2 `my-task2
+                              'fruit `my-custom-task}}]
+    (is (= [{:task `my-task2 :args []}]
+           (enter/parse-cli-args config ["task2"])))
+    (testing "A referred task is correctly parsed"
+      (is (= [{:task `my-custom-task :args ["-b"]}]
+             (enter/parse-cli-args {:refer-tasks {'fruit `my-custom-task}}
+                                   ["fruit" "-b"]))))
+    (testing "multiple tasks"
+      (is (= [{:task `my-task2 :args []}
+              {:task `my-custom-task :args ["-a" "1337"]}]
+             (enter/parse-cli-args config ["task2" "fruit" "-a" "1337"])))))
   (testing "Fully qualified task is correctly parsed"
     (is (= [{:task `my-custom-task :args []}]
            (enter/parse-cli-args {} [(str `my-custom-task)]))))
-  (testing "A referred task is correctly parsed"
-    (is (= [{:task `my-custom-task :args ["-b"]}]
-           (enter/parse-cli-args {:refer-tasks {'fruit `my-custom-task}}
-                                 ["fruit" "-b"]))))
+
   (testing "Nonexistent option results in an exit map."
     (is (shell/exit? (enter/parse-cli-args {} ["repl" "--teapot"])))))
 
-(deftest task-clojure-command-test
-  (let [task-deps (fn [deps]
-                    (-> (enter/task-clojure-command
-                          'clake-task.repl/repl ["test"] deps [])
-                        (get-in [:deps-edn :deps 'clake-tasks.repl])))]
-    (testing ":local/root relative directory"
-      (is (str/ends-with? (:local/root (task-deps {'clake-common {:local/root "../../common"}}))
-                          "/tasks/repl")))
-    (testing "git coord"
-      (is (= "sha"
-             (:sha (task-deps {'clake-common {:git/url ""
-                                              :sha     "sha"}})))))))
+(deftest built-in-task-coord-test
+  (let [task-coord (fn [common-coord]
+                     (-> (enter/built-in-task-coord 'clake-task.repl/repl common-coord)
+                         (get 'clake-tasks.repl)))]
+    (is (str/ends-with? (:local/root (task-coord {:local/root "."}))
+                        "/tasks/repl"))
+    (is (= "sha"
+           (:sha (task-coord {:git/url "" :sha "sha"}))))))

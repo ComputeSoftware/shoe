@@ -23,3 +23,7 @@
   [v]
   (let [{:keys [name ns]} (meta v)]
     (symbol (str ns) (str name))))
+
+(defmacro bind-exit
+  [bindings & body]
+  )

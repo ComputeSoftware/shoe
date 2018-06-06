@@ -8,11 +8,14 @@
     [clake-common.log :as log]
     [clake-cli.io :as io]
     [clake-cli.macros :as macros]
-    [clake-common.shell :as shell]))
+    [clake-common.shell :as shell]
+    ;[clake-common.script.built-in-tasks :as built-in]
+    ))
 
 (def config-name "clake.edn")
 (def jvm-entrypoint-ns 'clake-tasks.script.entrypoint)
 (macros/def-env-var circle-ci-sha1 "CIRCLE_SHA1")
+(macros/def-built-in-task-dirs built-in-dirs)
 
 (def cli-options
   ;; An option with a required argument
@@ -22,7 +25,7 @@
     :parse-fn (fn [vals-str]
                 (vec (str/split vals-str #",")))]
    [nil "--sha STR" "Custom Git SHA to run Clake with."]
-   [nil "--local PATH" "Path to use for a local dependency of clake-common."
+   [nil "--local PATH" "Path to the Clake repository on disk for local dependencies."
     :validate [(fn [x] (io/exists? x))]]])
 
 (defn usage-text
@@ -78,17 +81,31 @@
   [{:keys [local sha]}]
   (let [sha (or sha circle-ci-sha1)]
     (cond
-      local {:local/root local}
+      local {:local/root (str local "/common")}
       sha {:git/url   "https://github.com/ComputeSoftware/clake"
            :sha       sha
            :deps/root "common"}
       :else nil)))
 
+(defn built-in-task-deps
+  [{:keys [local sha]}]
+  (reduce (fn [deps dir]
+            (assoc deps (symbol (str "clake-tasks." dir))
+                        (cond
+                          local
+                          {:local/root (str local "/tasks/" dir)}
+                          (or sha circle-ci-sha1)
+                          {:git/url   "https://github.com/ComputeSoftware/clake"
+                           :sha       (or sha circle-ci-sha1)
+                           :deps/root (str "tasks/" dir)})))
+          {} built-in-dirs))
+
 (defn run-entrypoint
   [{:clake/keys [task-cli-args cli-opts]}]
   (if-let [clake-common-coord (resolve-clake-common-coordinate cli-opts)]
     (let [r (shell/clojure-deps-command
-              {:deps-edn {:deps {'clake-common clake-common-coord}}
+              {:deps-edn {:deps (merge {'clake-common clake-common-coord}
+                                       (built-in-task-deps cli-opts))}
                :aliases  (:aliases cli-opts)
                :main     "clake-common.script.entrypoint"
                :args     {:extra-deps {'clake-common clake-common-coord}

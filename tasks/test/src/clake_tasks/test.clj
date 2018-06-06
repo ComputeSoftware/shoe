@@ -3,6 +3,7 @@
   (:require
     [clojure.string :as str]
     [clojure.test :as clj-test]
+    [clojure.edn :as edn]
     [pjstadig.humane-test-output :as humane-test]
     [cognitect.test-runner :as test-runner]
     [clake-common.util :as util]
@@ -10,9 +11,34 @@
     [clake-common.shell :as shell]
     [clake-common.script.built-in-tasks :as tasks]))
 
+(defn- parse-kw
+  [s]
+  (if (str/starts-with? s ":") (edn/read-string s) (keyword s)))
+
+(defn- accumulate
+  [m k v]
+  (update-in m [k] (fnil conj #{}) v))
+
 (defn test
   "Run the project's tests."
-  {:clake/cli-specs (tasks/cli-spec `test)}
+  {:clake/cli-specs [["-d" "--dir DIRNAME" "Name of the directory containing tests. Defaults to \"test\"."
+                      :parse-fn str
+                      :assoc-fn accumulate]
+                     ["-n" "--namespace SYMBOL" "Symbol indicating a specific namespace to test."
+                      :parse-fn symbol
+                      :assoc-fn accumulate]
+                     ["-r" "--namespace-regex REGEX" "Regex for namespaces to test. Defaults to #\".*-test$\"\n(i.e, only namespaces ending in '-test' are evaluated)"
+                      :parse-fn re-pattern
+                      :assoc-fn accumulate]
+                     ["-v" "--var SYMBOL" "Symbol indicating the fully qualified name of a specific test."
+                      :parse-fn symbol
+                      :assoc-fn accumulate]
+                     ["-i" "--include KEYWORD" "Run only tests that have this metadata keyword."
+                      :parse-fn parse-kw
+                      :assoc-fn accumulate]
+                     ["-e" "--exclude KEYWORD" "Exclude tests with this metadata keyword."
+                      :parse-fn parse-kw
+                      :assoc-fn accumulate]]}
   [opts]
   (humane-test/activate!)
   (try
