@@ -30,9 +30,10 @@
     (catch FileNotFoundException ex
       (shell/exit false (.getMessage ex)))))
 
+;; we need to validate the CLI opts at entrypoint to separate out the task calls
 (defn validate-task-cli-opts
   [args cli-specs]
-  (let [{:keys [options arguments errors summary]} (cli/parse-opts args (conj cli-specs tasks/cli-task-help-option) :in-order true)]
+  (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
     (cond
       errors (shell/exit false (str/join \n errors))
       :else arguments)))
