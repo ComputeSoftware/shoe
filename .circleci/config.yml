@@ -157,7 +157,7 @@ workflows:
 #            branches:
 #              only:
 #                - master
-      - publish-docker-image:
+      - publish-docker-image
 #          requires:
 #            - publish-cli
 #          filters:
