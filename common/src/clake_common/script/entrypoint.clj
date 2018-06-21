@@ -5,19 +5,10 @@
     [clojure.edn :as edn]
     [clojure.tools.cli :as cli]
     [clake-common.shell :as shell]
+    [clake-common.task :as task]
     [clake-common.script.built-in-tasks :as tasks])
   (:import (java.nio.file Paths)
            (java.io FileNotFoundException)))
-
-(defn qualify-task
-  "Returns a qualified symbol pointing to the task function or `nil` if
-  `task-name` could not be qualified. First tries to qualify the task via a
-  `config` lookup. If that fails then tries to lookup in built-in map."
-  [config task-name]
-  (if (qualified-symbol? task-name)
-    task-name
-    (or (get-in config [:refer-tasks task-name])
-        (get tasks/default-refer-tasks task-name))))
 
 (defn lookup-task-cli-specs
   "Returns the CLI spec for `task-name-str` if it is available."
@@ -26,16 +17,16 @@
     (require (symbol (namespace qualified-task)))
     (if-let [v (resolve qualified-task)]
       (conj (:clake/cli-specs (meta v)) tasks/cli-task-help-option)
-      (shell/exit false (str "Could not resolve task " qualified-task ".")))
+      (task/exit false (str "Could not resolve task " qualified-task ".")))
     (catch FileNotFoundException ex
-      (shell/exit false (.getMessage ex)))))
+      (task/exit false (.getMessage ex)))))
 
 ;; we need to validate the CLI opts at entrypoint to separate out the task calls
 (defn validate-task-cli-opts
   [args cli-specs]
   (let [{:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :in-order true)]
     (cond
-      errors (shell/exit false (str/join \n errors))
+      errors (task/exit false (str/join \n errors))
       :else arguments)))
 
 (defn built-in-task-coord
@@ -91,27 +82,26 @@
          cmds []]
     (if-not (empty? args)
       (let [task-name-str (first args)]
-        (if-let [qualified-task (qualify-task config (symbol task-name-str))]
+        (if-let [qualified-task (task/qualify-task config (symbol task-name-str))]
           (let [args-without-task (rest args)
                 cli-specs (lookup-task-cli-specs qualified-task)]
-            (if-not (shell/exit? cli-specs)
+            (if-not (task/exit? cli-specs)
               (let [next-args-or-exit (validate-task-cli-opts args-without-task cli-specs)]
-                (if-not (shell/exit? next-args-or-exit)
+                (if-not (task/exit? next-args-or-exit)
                   (recur next-args-or-exit (conj cmds {:task qualified-task
                                                        :args (vec (take (- (count args-without-task)
                                                                            (count next-args-or-exit))
                                                                         args-without-task))}))
                   next-args-or-exit))
               cli-specs))
-          (shell/exit false (str "Could not resolve task " task-name-str "."))))
+          (task/exit false (str "Could not resolve task " task-name-str "."))))
       cmds)))
 
 (defn execute
   [{:keys [extra-deps args aliases]}]
-  ;; TODO: load config
-  (let [config {}
+  (let [config (task/load-config)
         parsed-args (parse-cli-args config args)]
-    (if-not (shell/exit? parsed-args)
+    (if-not (task/exit? parsed-args)
       ;; loop to run the commands parsed from the cli args
       (loop [parsed-args parsed-args]
         (if-not (empty? parsed-args)
@@ -120,8 +110,8 @@
             ;; stop task execution if one of the tasks fails with a non-zero exit
             (if (shell/status-success? result)
               (recur (rest parsed-args))
-              (shell/exit (:exit result) (:err result))))
-          (shell/exit true)))
+              (task/exit (:exit result) (:err result))))
+          (task/exit true)))
       parsed-args)))
 
 (defn -main
