@@ -16,12 +16,13 @@
         :lein-tools-deps/config {:config-files [:install :user :project]}))))
 
 (defn project-clj
-  [_]
+  {:clake/cli-specs [["-v" "--version VERSION" "lein-tools-deps version to use"]]}
+  [{:keys [version]}]
   (let [cwd (System/getProperty "user.dir")
         parent-dir-name (last (str/split cwd (re-pattern File/separator)))
         project-string (generate-project-clj-string
                          parent-dir-name
-                         "0.4.0-SNAPSHOT")]
+                         (or version "0.4.1"))]
     (spit (io/file cwd "project.clj") project-string)))
 
 (defn -main
