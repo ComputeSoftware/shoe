@@ -1,29 +1,17 @@
 (ns clake-common.script.entrypoint-test
   (:require
     [clojure.test :refer :all]
-    [clake-common.shell :as shell]
-    [clake-common.script.entrypoint :as enter]
-    [clojure.string :as str]))
-
-(deftest qualify-task-test
-  (testing "Qualified task is returned if passed in"
-    (is (= 'foo/bar (enter/qualify-task {} 'foo/bar))))
-  (testing "Able to qualify a built-in task"
-    (is (= 'clake-tasks.repl/repl (enter/qualify-task {} 'repl))))
-  (testing "Returns nil if cannot qualify the task."
-    (is (nil? (enter/qualify-task {} 'foo))))
-  (testing "Able to qualify a task defined in the config"
-    (is (= 'foo/bar (enter/qualify-task {:refer-tasks '{foo foo/bar}} 'foo))))
-  (testing "Able to override a built-in task with your own"
-    (is (= 'foo/repl (enter/qualify-task {:refer-tasks '{repl foo/repl}} 'repl)))))
+    [clojure.string :as str]
+    [clake-common.task :as task]
+    [clake-common.script.entrypoint :as enter]))
 
 (defn my-custom-task
   {:clake/cli-specs [["-a" "--apples N"]
                      ["-b" "--bool"]]}
   [{:keys [apples bool]}]
   (if bool
-    (shell/exit false)
-    (shell/exit true apples)))
+    (task/exit false)
+    (task/exit true apples)))
 
 (defn my-task2
   {:clake/cli-specs []}
@@ -52,7 +40,7 @@
            (enter/parse-cli-args {} [(str `my-custom-task)]))))
 
   (testing "Nonexistent option results in an exit map."
-    (is (shell/exit? (enter/parse-cli-args {} ["repl" "--teapot"])))))
+    (is (task/exit? (enter/parse-cli-args {} ["repl" "--teapot"])))))
 
 (deftest built-in-task-coord-test
   (let [task-coord (fn [common-coord]
