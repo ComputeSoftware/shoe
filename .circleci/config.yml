@@ -144,28 +144,28 @@ workflows:
   version: 2
   ci-workflow:
     jobs:
-      - test-cli:
-          context: clojure-env
-      - build-cli:
-          context: clojure-env
-      - publish-cli:
-          requires:
-            - test-cli
-            - build-cli
-            - test-jvm-code
-          filters:
-            branches:
-              only:
-                - master
+#      - test-cli:
+#          context: clojure-env
+#      - build-cli:
+#          context: clojure-env
+#      - publish-cli:
+#          requires:
+#            - test-cli
+#            - build-cli
+#            - test-jvm-code
+#          filters:
+#            branches:
+#              only:
+#                - master
       - publish-docker-image:
-          requires:
-            - publish-cli
-          filters:
-            branches:
-              only:
-                - master
-      - test-jvm-code:
-          context: clojure-env
-          requires:
-            - test-cli
-            - build-cli
+#          requires:
+#            - publish-cli
+#          filters:
+#            branches:
+#              only:
+#                - master
+#      - test-jvm-code:
+#          context: clojure-env
+#          requires:
+#            - test-cli
+#            - build-cli
