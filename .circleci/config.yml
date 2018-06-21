@@ -138,8 +138,8 @@ jobs:
           command: |
             export VERSION=$(cat workspace/cli_version.txt)
             echo 'Building version' $VERSION
-            docker build -t compute/clake:$VERSION docker
-            docker push compute/clake:$VERSION
+            docker build --build-arg clake_version=$VERSION -t computesoftware/clake:$VERSION docker
+            docker push computesoftware/clake:$VERSION
 
 workflows:
   version: 2

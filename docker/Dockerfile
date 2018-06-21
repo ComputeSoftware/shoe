@@ -1,3 +1,5 @@
 FROM circleci/clojure:tools-deps-node
 
-RUN sudo npm install clake-cli -g
+ARG clake_version
+
+RUN sudo npm install clake-cli@$clake_version -g
