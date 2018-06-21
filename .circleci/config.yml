@@ -122,6 +122,14 @@ jobs:
             cd common
             clake -A :test test
 
+  tempstep:
+    steps:
+      - run: echo "1.0.14" > cli_version.txt
+      - persist_to_workspace:
+          root: ./
+          paths:
+            - cli_version.txt
+
   publish-docker-image:
     working_directory: ~/repo
     docker:
@@ -131,6 +139,7 @@ jobs:
           docker_layer_caching: true
       - attach_workspace:
           at: workspace
+      - run: echo "1.0.14" > work
       - run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - run:
           name: Build & push image
@@ -157,8 +166,10 @@ workflows:
 #            branches:
 #              only:
 #                - master
-      - publish-docker-image
-#          requires:
+      - tempstep
+      - publish-docker-image:
+          requires:
+            - tempstep
 #            - publish-cli
 #          filters:
 #            branches:
