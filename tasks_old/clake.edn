@@ -1,5 +1,0 @@
-{:task-opts   {nrepl   {:lein-port true}
-               test    {:aliases [:test]}
-               uberjar {:aliases []
-                        :aot     :all
-                        :jar-name "standalone.jar"}}}
