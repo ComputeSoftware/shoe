@@ -2,14 +2,10 @@
   (:refer-clojure :exclude [test])
   (:require
     [clojure.string :as str]
-    [clojure.test :as clj-test]
     [clojure.edn :as edn]
     [pjstadig.humane-test-output :as humane-test]
     [cognitect.test-runner :as test-runner]
-    [clake-common.util :as util]
-    [clake-common.task :as task]
-    [clake-common.shell :as shell]
-    [clake-common.script.built-in-tasks :as tasks]))
+    [clake-common.task :as task]))
 
 (defn- parse-kw
   [s]
@@ -44,7 +40,7 @@
   (try
     (let [{:keys [fail error]} (test-runner/test opts)]
       (when (or (not= 0 fail) (not= 0 error))
-        (shell/exit false)))
+        (task/exit false)))
     (finally (shutdown-agents))))
 
 (task/def-task-main test)
