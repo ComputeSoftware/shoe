@@ -123,6 +123,7 @@ jobs:
             clake -A :test test
 
   tempstep:
+    <<: *defaults
     steps:
       - run: echo "1.0.14" > cli_version.txt
       - persist_to_workspace:
