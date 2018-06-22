@@ -7,6 +7,16 @@ defaults: &defaults
   environment:
     JVM_OPTS: -Xmx3200m
 
+install-local-clake: &install-local-clake
+  - attach_workspace:
+      at: scripts
+  - run:
+      name: Install Clake
+      command: |
+        cd scripts/build
+        chmod +x clake.js
+        sudo mv clake.js /usr/local/bin/clake
+
 jobs:
   test-cli:
     <<: *defaults
@@ -109,13 +119,7 @@ jobs:
       - checkout
       - attach_workspace:
           at: scripts
-      # TODO: This needs to be replaced with a real install task in npm
-      - run:
-          name: Install Clake
-          command: |
-            cd scripts/build
-            chmod +x clake.js
-            sudo mv clake.js /usr/local/bin/clake
+      - *install-local-clake
       - run:
           name: Test common
           command: |
@@ -126,6 +130,7 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - *install-local-clake
       - run:
           name: Update SHAs
           command: |
