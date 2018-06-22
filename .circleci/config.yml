@@ -7,6 +7,21 @@ defaults: &defaults
   environment:
     JVM_OPTS: -Xmx3200m
 
+install-local-clake: &install-local-clake
+  run:
+    name: Install Clake locally
+    command: |
+      cd cli
+      sudo npm link
+
+configure-git: &configure-git
+  run:
+    name: Configure Git
+    command: |
+      git config --global user.email "compute-ci@computesoftware.com"
+      git config --global user.name "compute-ci"
+      git branch --set-upstream-to=origin/$CIRCLE_BRANCH $CIRCLE_BRANCH
+
 jobs:
   test-cli:
     <<: *defaults
@@ -68,11 +83,7 @@ jobs:
             mkdir cli/build
             mv scripts/build/clake.js cli/build/clake.js
 
-      - run:
-          name: Configure Git
-          command: |
-            git config --global user.email "compute-ci@computesoftware.com"
-            git config --global user.name "compute-ci"
+      - *configure-git
 
       - run:
           name: Configure NPM
@@ -108,19 +119,32 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: scripts
-      # TODO: This needs to be replaced with a real install task in npm
-      - run:
-          name: Install Clake
-          command: |
-            cd scripts/build
-            chmod +x clake.js
-            sudo mv clake.js /usr/local/bin/clake
+          at: cli
+      - *install-local-clake
       - run:
           name: Test common
           command: |
             cd common
             clake -A :test test
+
+  update-task-shas:
+    <<: *defaults
+    steps:
+      - checkout
+      - attach_workspace:
+          at: cli
+      - *install-local-clake
+      - *configure-git
+      - run:
+          name: Update SHAs
+          command: |
+            cd dev
+            clake dev.ci/replace-git-sha --sha $CIRCLE_SHA1
+            cd ..
+            git add .
+            git commit -m "Update SHAs" -m "[ci skip]"
+            git pull
+            git push
 
   publish-docker-image:
     working_directory: ~/repo
@@ -170,3 +194,7 @@ workflows:
           requires:
             - test-cli
             - build-cli
+      - update-task-shas:
+          context: clojure-env
+          requires:
+            - test-jvm-code

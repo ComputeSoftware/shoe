@@ -17,15 +17,6 @@
   [x]
   (some? (:clake-exit/status x)))
 
-(defn system-exit
-  "Exit the process."
-  [{:clake-exit/keys [status message]}]
-  (when message
-    (if (= status 0)
-      (log/info message)
-      (log/error message)))
-  #?(:clj (System/exit status) :cljs (.exit js/process status)))
-
 (defn exit
   "Return a map that can be passed to `system-exit` to exit the process."
   ([ok?-or-status] (exit ok?-or-status nil))
@@ -36,8 +27,17 @@
          ok? (= status 0)
          exit-map (cond-> {:clake-exit/status status
                            :clake-exit/ok?    ok?}
-                          msg (assoc :clake-exit/message msg))]
+                    msg (assoc :clake-exit/message msg))]
      exit-map)))
+
+(defn system-exit
+  "Exit the process."
+  [{:clake-exit/keys [status message]}]
+  (when message
+    (if (= status 0)
+      (log/info message)
+      (log/error message)))
+  #?(:clj (System/exit status) :cljs (.exit js/process status)))
 
 ;(defn create-tempdir
 ;  []
