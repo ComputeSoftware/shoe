@@ -3,7 +3,7 @@
            org.clojure/tools.nrepl {:mvn/version "0.2.13"}
            clake-common            {:git/url   "https://github.com/ComputeSoftware/clake"
                                     :deps/root "common"
-                                    :sha       "cd74f0abf058b049e9d12ce5cccc23839e2c7eae"}}
+                                    :sha       "fd8da539c546660226b1b1658d4c5f7a62f08711"}}
  ;; override-deps does not work correctly right now so we need to use the comment approach
  ;; https://dev.clojure.org/jira/browse/TDEPS-51
  :aliases {:dev  {:override-deps {clake-common {:local/root "../../common"}}}
