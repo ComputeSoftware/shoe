@@ -19,7 +19,7 @@
       (conj (:clake/cli-specs (meta v)) tasks/cli-task-help-option)
       (task/exit false (str "Could not resolve task " qualified-task ".")))
     (catch FileNotFoundException ex
-      (task/exit false (.getMessage ex)))))
+      (task/exit false (format "Could not require %s. Is it on the classpath?" (namespace qualified-task))))))
 
 ;; we need to validate the CLI opts at entrypoint to separate out the task calls
 (defn validate-task-cli-opts
