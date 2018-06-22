@@ -144,6 +144,7 @@ jobs:
             git add .
             git commit -m "Update SHAs" -m "[ci skip]"
             git pull
+            git commit
             git push
 
   publish-docker-image:
