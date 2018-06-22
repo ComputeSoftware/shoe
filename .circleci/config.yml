@@ -115,7 +115,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-          at: scripts
+          at: cli
       - *install-local-clake
       - run:
           name: Test common
