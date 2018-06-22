@@ -127,6 +127,9 @@ jobs:
     <<: *defaults
     steps:
       - checkout
+      - attach_workspace:
+          at: cli
+      - *install-local-clake
       - run:
           name: Update SHAs
           command: |
@@ -189,4 +192,4 @@ workflows:
       - update-task-shas:
           context: clojure-env
           requires:
-            - publish-cli
+            - test-jvm-code
