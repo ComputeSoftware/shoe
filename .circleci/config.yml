@@ -14,6 +14,13 @@ install-local-clake: &install-local-clake
       cd cli
       sudo npm link
 
+configure-git: &configure-git
+  run:
+    name: Configure Git
+    command: |
+      git config --global user.email "compute-ci@computesoftware.com"
+      git config --global user.name "compute-ci"
+
 jobs:
   test-cli:
     <<: *defaults
@@ -75,11 +82,7 @@ jobs:
             mkdir cli/build
             mv scripts/build/clake.js cli/build/clake.js
 
-      - run:
-          name: Configure Git
-          command: |
-            git config --global user.email "compute-ci@computesoftware.com"
-            git config --global user.name "compute-ci"
+      - *configure-git
 
       - run:
           name: Configure NPM
@@ -130,6 +133,7 @@ jobs:
       - attach_workspace:
           at: cli
       - *install-local-clake
+      - *configure-git
       - run:
           name: Update SHAs
           command: |
