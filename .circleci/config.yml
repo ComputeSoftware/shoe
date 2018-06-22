@@ -141,10 +141,13 @@ jobs:
             cd dev
             clake dev.ci/replace-git-sha --sha $CIRCLE_SHA1
             cd ..
-            git add .
-            git commit -m "Update SHAs" -m "[ci skip]"
+            echo "pull"
             git pull
-            git commit
+            echo "add"
+            git add .
+            echo "commit"
+            git commit -m "Update SHAs" -m "[ci skip]"
+            echo "push"
             git push
 
   publish-docker-image:
