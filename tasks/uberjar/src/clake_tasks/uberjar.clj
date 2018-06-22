@@ -1,13 +1,11 @@
 (ns clake-tasks.uberjar
   (:require
     [clojure.string :as str]
-    [clojure.set :as sets]
+    [clojure.java.io :as io]
     [clojure.edn :as edn]
-    [clojure.java.shell :as sh]
+    [clojure.tools.namespace.find :as ns.find]
     [hara.io.file :as fs]
     [hara.io.archive :as archive]
-    [clake-common.util :as util]
-    [clake-common.shell :as shell]
     [clake-common.log :as log]))
 
 (defn trim-beginning-slash
@@ -15,6 +13,10 @@
   (if (str/starts-with? s "/")
     (subs s 1)
     s))
+
+(defn file-name
+  [path]
+  (str (fs/relativize (fs/parent (fs/path path)) (fs/path path))))
 
 (defn excluded?
   "Returns true of `filename` should be excluded from the JAR."
@@ -70,7 +72,7 @@
 (defn merge-files
   [existing-path new-path]
   (cond
-    (= "data_readers.clj" (util/file-name existing-path))
+    (= "data_readers.clj" (file-name existing-path))
     (merge-edn-files existing-path existing-path new-path)
     ;(re-find #"^META-INF/services/" (trim-beginning-slash new-path))
     :else (fs/move new-path existing-path)))
@@ -121,20 +123,32 @@
           build-jdk
           main-class))
 
-(defn classpath-string
-  "Returns the raw Java classpath string."
-  [aliases]
-  ;; should probably replace this we an actual API call to tools-deps. there's
-  ;; no easy built-in function to do this right now though.
-  (let [{:keys [exit out]} (shell/clojure-deps-command {:aliases aliases
-                                                        :command :path})]
-    (when (= 0 exit)
-      (str/trim-newline out))))
-
 (defn parse-classpath-string
   "Returns a vector of classpath paths."
   [cp-string]
   (str/split cp-string (re-pattern (System/getProperty "path.separator"))))
+
+(defn classpath-string
+  "Returns the raw Java classpath string."
+  []
+  (System/getProperty "java.class.path"))
+
+(defn filter-classpath
+  [classpath-str exclude]
+  (let [cp-vec (parse-classpath-string classpath-str)]
+    (filter (fn [path]
+              (not (re-find (re-pattern exclude) path))) cp-vec)))
+
+(defn find-project-paths
+  "Returns a vector of paths that are within this project."
+  [classpath-vec cwd]
+  (into []
+        (comp
+          (map (fn [path] (.normalize (fs/path path))))
+          (filter (fn [path]
+                    (str/starts-with? path cwd)))
+          (map str))
+        classpath-vec))
 
 (defn write-manifest
   [base-dir main]
@@ -142,9 +156,9 @@
         (generate-manifest-string {:main-class (str (munge main))})))
 
 (defn uberjar-compile
-  [{:keys [main aot aliases target-path deps-edn]}]
+  [project-paths {:keys [main aot target-path]}]
   (let [compile-path (fs/path target-path "classes")
-        namespaces-in-project (set (util/namespaces-in-project deps-edn aliases))
+        namespaces-in-project (set (ns.find/find-namespaces (map io/file project-paths)))
         namespaces-to-compile (set (if (= aot :all) namespaces-in-project aot))]
     (when (and (contains? namespaces-in-project main)
                (not (contains? namespaces-to-compile main)))
@@ -156,12 +170,30 @@
         (compile ns-sym)))))
 
 (defn uberjar
-  [;{:keys [aliases main jar-name] :as opts} {:keys [config] :as ctx}
-   {:keys [target-path aliases main jar-name] :as opts}]
-  (let [cp-vec (parse-classpath-string (classpath-string aliases))
+  {:clake/cli-specs [["-t" "--target-path PATH" "Path for compilation."
+                      :default "target"]
+                     ["-m" "--main NS" "The main namespace"
+                      :parse-fn symbol]
+                     ["-j" "--jar-name NAME" "The name of the uberjar."]
+                     ["-a" "--aot NAMESPACES" "Comma separated list of namespaces to compile."
+                      :parse-fn (fn [s]
+                                  (map symbol (str/split s #",")))]
+                     [nil "--aot-all" "Set to true to AOT all project files."]
+                     ["-e" "--exclude-classpath" "Regex to use to filter the classpath for project files."
+                      :parse-fn re-pattern
+                      :default #"clake"]]}
+  [{:keys [target-path main jar-name aot aot-all exclude-classpath]}]
+  (let [cp-vec (filter-classpath (classpath-string) exclude-classpath)
+        cwd (System/getProperty "user.dir")
         jar-contents-path (fs/path target-path "jar-contents")
-        _ (explode-classpath cp-vec jar-contents-path)]
-    (uberjar-compile opts)
+        _ (explode-classpath cp-vec jar-contents-path)
+        aot-val (if aot-all :all aot)]
+    (log/info "Compiling" (pr-str aot-val) "...")
+    (uberjar-compile (find-project-paths cp-vec cwd)
+                     {:main        main
+                      :aot         aot-val
+                      :target-path target-path})
+    (log/info "Creating" jar-name "...")
     ;; copy compiled classes into the jar contents directory
     (fs/move (fs/path target-path "classes") jar-contents-path)
     ;; add the manifest to the jar
