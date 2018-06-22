@@ -1,5 +1,4 @@
 {:task-opts {nrepl   {:lein-port true}
-             uberjar {:aliases  []
-                      :main     uberjar-sample.core
+             uberjar {:main     uberjar-sample.core
                       :aot      [uberjar-sample.core]
                       :jar-name "uberjar-sample-standalone.jar"}}}
