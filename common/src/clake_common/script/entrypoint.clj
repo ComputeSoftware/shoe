@@ -71,7 +71,7 @@
                 (clake-common.task/execute-task-handler
                   '~qualified-task
                   ~cli-args)]
-   :cmd-opts  {:stdio ["pipe" "inherit" "inherit"]}})
+   :cmd-opts  {:stdio ["inherit" "inherit" "inherit"]}})
 
 (defn parse-cli-args
   "Returns a vector of maps with keys :task and :args. :task is a qualified symbol

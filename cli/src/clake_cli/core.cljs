@@ -111,7 +111,7 @@
                :args     {:extra-deps {'clake-common clake-common-coord}
                           :args       task-cli-args
                           :aliases    (:aliases cli-opts)}
-               :cmd-opts {:stdio ["ignore" "inherit" "inherit"]}})]
+               :cmd-opts {:stdio ["inherit" "inherit" "inherit"]}})]
       (shell/exit (:exit r)))
     (shell/exit false "Could not resolve clake-common.")))
 
