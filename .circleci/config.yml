@@ -20,6 +20,7 @@ configure-git: &configure-git
     command: |
       git config --global user.email "compute-ci@computesoftware.com"
       git config --global user.name "compute-ci"
+      git branch --set-upstream-to=origin/$CIRCLE_BRANCH $CIRCLE_BRANCH
 
 jobs:
   test-cli:
