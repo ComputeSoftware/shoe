@@ -12,7 +12,7 @@ install-local-clake: &install-local-clake
     name: Install Clake locally
     command: |
       cd cli
-      npm link
+      sudo npm link
 
 jobs:
   test-cli:
