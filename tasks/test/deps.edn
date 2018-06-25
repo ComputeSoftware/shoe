@@ -5,4 +5,4 @@
                                       :sha     "78d380d00e7a27f7b835bb90af37e73b20c49bcc"}
          clake-common                {:git/url   "https://github.com/ComputeSoftware/clake"
                                       :deps/root "common"
-                                      :sha       "cd74f0abf058b049e9d12ce5cccc23839e2c7eae"}}}
+                                      :sha       "6351aef646b3d640b110925f590a544ef90040f4"}}}
