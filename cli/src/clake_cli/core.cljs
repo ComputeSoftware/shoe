@@ -118,7 +118,7 @@
 (defn clj-installed?
   []
   (try
-    (some? (shell/clojure-command ["--help"]))
+    (shell/status-success? (shell/clojure-command ["--help"]))
     (catch js/Error _ false)))
 
 (defn execute
