@@ -5,24 +5,10 @@
     [clojure.tools.namespace.find :as ns.find]
     [clake-common.log :as log]
     [clake-common.shell :as shell]
-    [clake-common.task :as task])
+    [clake-common.task :as task]
+    [clake-common.fs :as fs]
+    [clake-common.util :as util])
   (:import (java.nio.file Paths)))
-
-(defn get-cwd
-  []
-  (System/getProperty "user.dir"))
-
-(defn classpath-string-from-clj
-  []
-  ;; TODO: include aliases here
-  (let [r (shell/clojure-deps-command {:command :path})]
-    (when (shell/status-success? r)
-      (str/trim-newline (:out r)))))
-
-(defn parse-classpath-string
-  "Returns a vector of classpath paths."
-  [cp-string]
-  (str/split cp-string (re-pattern (System/getProperty "path.separator"))))
 
 (defn find-project-paths
   "Returns a vector of paths that are within this project."
@@ -41,9 +27,9 @@
 
 (defn- namespaces-in-project
   []
-  (let [project-paths (-> (classpath-string-from-clj)
-                          (parse-classpath-string)
-                          (find-project-paths (get-cwd)))]
+  (let [project-paths (-> (shell/classpath-string-from-clj)
+                          (util/parse-classpath-string)
+                          (find-project-paths fs/cwd))]
     (set (ns.find/find-namespaces (map io/file project-paths)))))
 
 (defn aot

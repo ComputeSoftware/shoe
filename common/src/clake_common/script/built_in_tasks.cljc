@@ -5,6 +5,9 @@
   '{repl        clake-tasks.repl/repl
     test        clake-tasks.test/test
     aot         clake-tasks.aot/aot
+    libdir      clake-tasks.libdir/libdir
+    archive     clake-tasks.archive/archive
+    jar         clake-tasks.jar/jar
     uberjar     clake-tasks.uberjar/uberjar
     project-clj clake-tasks.project-clj/project-clj})
 

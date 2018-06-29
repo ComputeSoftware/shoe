@@ -6,7 +6,8 @@
     [clojure.tools.namespace.find :as ns.find]
     [hara.io.file :as fs]
     [hara.io.archive :as archive]
-    [clake-common.log :as log]))
+    [clake-common.log :as log]
+    [clake-common.shell :as shell]))
 
 (defn trim-beginning-slash
   [s]
@@ -128,8 +129,8 @@
   [cp-string]
   (str/split cp-string (re-pattern (System/getProperty "path.separator"))))
 
-(defn classpath-string
-  "Returns the raw Java classpath string."
+(defn current-classpath-string
+  "Returns the raw Java classpath string for the current JVM."
   []
   (System/getProperty "java.class.path"))
 
@@ -138,6 +139,13 @@
   (let [cp-vec (parse-classpath-string classpath-str)]
     (filter (fn [path]
               (not (re-find (re-pattern exclude) path))) cp-vec)))
+
+(defn classpath-string-from-clj
+  []
+  ;; TODO: include aliases here
+  (let [r (shell/clojure-deps-command {:command :path})]
+    (when (shell/status-success? r)
+      (str/trim-newline (:out r)))))
 
 (defn find-project-paths
   "Returns a vector of paths that are within this project."
@@ -167,6 +175,7 @@
     (fs/create-directory compile-path)
     (binding [*compile-path* (str compile-path)]
       (doseq [ns-sym namespaces-to-compile]
+        (log/info "Compiling" ns-sym "...")
         (compile ns-sym)))))
 
 (defn uberjar
@@ -174,32 +183,38 @@
                       :default "target"]
                      ["-m" "--main NS" "The main namespace"
                       :parse-fn symbol]
-                     ["-j" "--jar-name NAME" "The name of the uberjar."]
+                     ["-j" "--jar-name NAME" "The name of the uberjar."
+                      :default "standalone.jar"]
                      ["-a" "--aot NAMESPACES" "Comma separated list of namespaces to compile."
                       :parse-fn (fn [s]
                                   (map symbol (str/split s #",")))]
-                     [nil "--aot-all" "Set to true to AOT all project files."]
-                     ["-e" "--exclude-classpath" "Regex to use to filter the classpath for project files."
-                      :parse-fn re-pattern
-                      :default #"clake"]]}
-  [{:keys [target-path main jar-name aot aot-all exclude-classpath]}]
-  (let [cp-vec (filter-classpath (classpath-string) exclude-classpath)
+                     [nil "--aot-all" "Set to true to AOT all project files."]]}
+  [{:keys [target-path main jar-name aot aot-all]}]
+  ;; originally we tried to get the current classpath and remove anything with clake
+  ;; from it. this will not work because those clake deps may have dependencies
+  ;; themselves which should not be on the classpath. Instead we need to read in
+  ;; the deps.edn file and determine the classpath ourselves.
+  (let [cp-vec (parse-classpath-string (classpath-string-from-clj))
         cwd (System/getProperty "user.dir")
         jar-contents-path (fs/path target-path "jar-contents")
-        _ (explode-classpath cp-vec jar-contents-path)
-        aot-val (if aot-all :all aot)]
-    (log/info "Compiling" (pr-str aot-val) "...")
-    (uberjar-compile (find-project-paths cp-vec cwd)
-                     {:main        main
-                      :aot         aot-val
-                      :target-path target-path})
-    (log/info "Creating" jar-name "...")
+        jar-path (fs/path target-path jar-name)]
+    ;; move all assets on the classpath into the JAR
+    (explode-classpath cp-vec jar-contents-path)
+    ; compile
+    (let [aot-val (if aot-all :all aot)]
+      (uberjar-compile (find-project-paths cp-vec cwd)
+                       {:main        main
+                        :aot         aot-val
+                        :target-path target-path}))
     ;; copy compiled classes into the jar contents directory
+    (log/info "Moving resources...")
     (fs/move (fs/path target-path "classes") jar-contents-path)
     ;; add the manifest to the jar
     (write-manifest jar-contents-path main)
     ;; create the jar
-    (archive/archive (fs/path target-path (or jar-name "standalone.jar")) jar-contents-path)
+    (log/info "Creating" jar-name "...")
+    (fs/delete jar-path)
+    (archive/archive jar-path jar-contents-path)
     ;; cleanup
-    (fs/delete jar-contents-path)
+
     true))
