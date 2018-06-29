@@ -90,7 +90,7 @@
 (defn built-in-task-deps
   [{:keys [local sha]}]
   (reduce (fn [deps dir]
-            (assoc deps (symbol (str "shoe-tasks." dir))
+            (assoc deps (symbol (str "shoe.tasks/" dir))
                         (cond
                           local
                           {:local/root (str local "/tasks/" dir)}
@@ -104,7 +104,7 @@
   [{:shoe/keys [task-cli-args cli-opts]}]
   (if-let [shoe-common-coord (resolve-shoe-common-coordinate cli-opts)]
     (let [r (shell/clojure-deps-command
-              {:deps-edn {:deps (merge {'shoe-common shoe-common-coord}
+              {:deps-edn {:deps (merge {'shoe/common shoe-common-coord}
                                        (built-in-task-deps cli-opts))}
                :aliases  (:aliases cli-opts)
                :main     "shoe-common.script.entrypoint"
