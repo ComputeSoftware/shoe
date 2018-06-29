@@ -1,4 +1,5 @@
 (ns clake-common.util
+  (:require [clojure.string :as str])
   (:import (clojure.lang IFn)))
 
 (defn add-shutdown-hook
@@ -10,6 +11,7 @@
   (let [{:keys [name ns]} (meta v)]
     (symbol (str ns) (str name))))
 
-(defmacro bind-exit
-  [bindings & body]
-  )
+(defn parse-classpath-string
+  "Returns a vector of classpath paths."
+  [cp-string]
+  (str/split cp-string (re-pattern (System/getProperty "path.separator"))))
