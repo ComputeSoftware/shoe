@@ -4,7 +4,7 @@
            org.clojure/tools.nrepl {:mvn/version "0.2.13"}
            shoe-common            {:git/url   "https://github.com/ComputeSoftware/shoe"
                                     :deps/root "common"
-                                    :sha       "6351aef646b3d640b110925f590a544ef90040f4"}}
+                                    :sha       "52cc080a75142072531fa3c738951bd88db57591"}}
  ;; override-deps does not work correctly right now so we need to use the comment approach
  ;; https://dev.clojure.org/jira/browse/TDEPS-51
  :aliases {:dev  {:override-deps {shoe-common {:local/root "../../common"}}}
