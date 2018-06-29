@@ -2,42 +2,35 @@
   (:require
     [clojure.string :as str]
     [clojure.java.io :as io]
+    [clojure.pprint :as pp]
     [clojure.edn :as edn])
   (:import (java.io FilenameFilter)))
 
-;; the reason for this nightmare is to keep the formatting of a deps.edn exactly
-;; the same and only replace the `:sha` for shoe-common in a deps.edn.
-(defn replace-shoe-common-sha
-  [deps-string new-sha]
-  (let [shoe-name "shoe-common"
-        name-index (str/index-of deps-string shoe-name)
-        map-start-i (reduce (fn [i char]
-                              (if (= char \{)
-                                (reduced (inc i))
-                                (inc i)))
-                            name-index (drop name-index deps-string))
-        sha-i (+ map-start-i
-                 (str/index-of (apply str (drop map-start-i deps-string)) ":sha")
-                 ;; + 4 for length of :sha
-                 4)
-        find-quote-idx (fn [s]
-                         (reduce (fn [i char]
-                                   (if (= char \")
-                                     (reduced (inc i))
-                                     (inc i)))
-                                 0 s))
-        sha-start-i (+ sha-i (find-quote-idx (drop sha-i deps-string)))
-        sha-end-i (+ sha-start-i
-                     (find-quote-idx (drop sha-start-i deps-string))
-                     ;; subtract 1 to add the " back in
-                     -1)]
-    (str (subs deps-string 0 sha-start-i)
-         new-sha
-         (subs deps-string sha-end-i (count deps-string)))))
+(defn find-shoe-deps
+  [deps-edn]
+  (into #{}
+        (filter (fn [artifact-name]
+                  (contains? #{"shoe" "shoe.tasks"} (namespace artifact-name))))
+        (keys (:deps deps-edn))))
 
-(defn shoe-common-git-dep?
-  [deps-string]
-  (some? (get-in (edn/read-string deps-string) [:deps 'shoe-common :sha])))
+(defn replace-shoe-sha
+  [deps-edn sha]
+  (let [paths (map (partial vector :deps) (find-shoe-deps deps-edn))]
+    (reduce (fn [deps-edn dep-path]
+              (update-in deps-edn dep-path
+                         (fn [coord]
+                           (if (:sha coord)
+                             (assoc coord :sha sha)
+                             coord))))
+            deps-edn paths)))
+
+;; TODO: replace with better formatter
+;; zprint, clj-fmt
+(defn format-deps-edn
+  [deps-edn]
+  (str/replace (binding [*print-namespace-maps* false]
+                 (with-out-str (pp/pprint deps-edn)))
+               "," ""))
 
 (defn task-deps-edn-paths
   [root-path]
@@ -57,27 +50,19 @@
   [{:keys [sha]}]
   (assert sha ":sha not set.")
   (doseq [p (task-deps-edn-paths "..")]
-    (let [deps-str (slurp p)]
-      (if (shoe-common-git-dep? deps-str)
-        (spit p (replace-shoe-common-sha deps-str sha))))))
+    (let [deps-edn (edn/read-string (slurp p))
+          new-deps-edn (replace-shoe-sha deps-edn sha)]
+      (spit p (format-deps-edn new-deps-edn)))))
 
 (comment
-  (def deps-edn-str
-    "{:deps    {org.clojure/clojure     {:mvn/version \"1.9.0\"}
-           org.clojure/spec.alpha  {:mvn/version \"0.1.143\"}
-           org.clojure/tools.nrepl {:mvn/version \"0.2.13\"}
-           shoe-common            {:git/url   \"https://github.com/ComputeSoftware/shoe\"
-                                    :deps/root \"common\"
-                                    :sha       \"3e1c1ede14f47674188f2170265b44c5eb1eaaeb\"}}
- ;; override-deps does not work correctly right now so we need to use the comment approach
- ;; https://dev.clojure.org/jira/browse/TDEPS-51
- :aliases {:dev  {:override-deps {shoe-common {:local/root \"../../common\"}}}
-           :repl {:main-opts [\"-m\" \"shoe-tasks.repl\"]}}}")
-
-  (def deps-edn-str
-    "{:deps {org.clojure/clojure         {:mvn/version \"1.9.0\"}
- pjstadig/humane-test-output {:mvn/version \"0.8.3\"}
- com.cognitect/test-runner   {:git/url \"https://github.com/cognitect-labs/test-runner.git\"
-                              :sha     \"78d380d00e7a27f7b835bb90af37e73b20c49bcc\"}
- shoe-common                {:local/root \"../../common\"}}}")
+  (def deps-edn
+    '{:deps {org.clojure/clojure      {:mvn/version "1.9.0"}
+             zcaudate/hara.io.file    {:mvn/version "2.8.2"}
+             zcaudate/hara.io.archive {:mvn/version "2.8.2"}
+             shoe/common              {:git/url   "https://github.com/ComputeSoftware/shoe"
+                                       :deps/root "common"
+                                       :sha       "0e5301e7627f87c7e134816a8fd6fe186f88a90a"}
+             shoe.tasks/uberjar       {:git/url   "https://github.com/ComputeSoftware/shoe"
+                                       :deps/root "common"
+                                       :sha       "0e5301e7627f87c7e134816a8fd6fe186f88a90a"}}})
   )
