@@ -23,16 +23,16 @@
                        (fn [refer-tasks]
                          (merge tasks/default-refer-tasks refer-tasks)))]
     (cond-> config
-      (:task-opts config)
-      (update :task-opts
-              (fn [task-opts]
-                (reduce-kv (fn [task-opts short-task-sym qualified-task-sym]
-                             (let [opts (or (get task-opts qualified-task-sym)
-                                            (get task-opts short-task-sym))]
-                               (cond-> task-opts
-                                 opts (assoc qualified-task-sym opts)
-                                 true (dissoc short-task-sym))))
-                           task-opts (:refer-tasks config)))))))
+            (:task-opts config)
+            (update :task-opts
+                    (fn [task-opts]
+                      (reduce-kv (fn [task-opts short-task-sym qualified-task-sym]
+                                   (let [opts (or (get task-opts qualified-task-sym)
+                                                  (get task-opts short-task-sym))]
+                                     (cond-> task-opts
+                                             opts (assoc qualified-task-sym opts)
+                                             true (dissoc short-task-sym))))
+                                 task-opts (:refer-tasks config)))))))
 
 (defn load-config
   ([] (load-config config-name))
@@ -65,7 +65,8 @@
 (defn validate-args
   [args cli-specs task-doc]
   (let [cli-specs (conj cli-specs ["-h" "--help" "Print the help menu for this task."])
-        {:keys [options arguments errors summary]} (cli/parse-opts args cli-specs)]
+        ;; parse with :no-defaults so we can customize the order the default options are merged.
+        {:keys [options arguments errors summary]} (cli/parse-opts args cli-specs :no-defaults true)]
     (cond
       (:help options)
       (exit true (->> [(when task-doc [task-doc ""])
@@ -76,18 +77,21 @@
                       (str/join "\n")))
       errors
       (exit false (str/join "\n" errors))
-      :else options)))
+      :else {:opts         options
+             :default-opts (cli/get-default-options cli-specs)})))
 
 (defn execute-task-handler
   [qualified-task-name args]
   (let [task-var (resolve qualified-task-name)
         meta-map (meta task-var)
-        r (validate-args args (:clake/cli-specs meta-map) (:doc meta-map))]
+        {:keys [opts default-opts] :as r} (validate-args args (:clake/cli-specs meta-map) (:doc meta-map))]
     (shell/system-exit
       (if-not (exit? r)
-        (let [r (@task-var (merge (task-options (load-config) qualified-task-name) r))]
-          (if (exit? r)
-            r
+        (let [task-result (@task-var (merge default-opts
+                                            (task-options (load-config) qualified-task-name)
+                                            opts))]
+          (if (exit? task-result)
+            task-result
             (exit true)))
         r))))
 
