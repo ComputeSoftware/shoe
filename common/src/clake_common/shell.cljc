@@ -141,3 +141,10 @@
     (:out (clojure-deps-command {:deps-edn  deps
                                  :eval-code code
                                  :as        :edn}))))
+
+(defn classpath-string-from-clj
+  []
+  ;; TODO: include aliases here
+  (let [r (clojure-deps-command {:command :path})]
+    (when (status-success? r)
+      (str/trim-newline (:out r)))))
