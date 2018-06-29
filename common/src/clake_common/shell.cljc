@@ -33,7 +33,7 @@
 (defn system-exit
   "Exit the process."
   [{:clake-exit/keys [status message]}]
-  (when message
+  (when (and message (not (str/blank? message)))
     (if (= status 0)
       (log/info message)
       (log/error message)))
