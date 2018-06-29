@@ -1,8 +1,11 @@
 {:paths ["src"]
- :deps  {org.clojure/clojure         {:mvn/version "1.9.0"}
-         pjstadig/humane-test-output {:mvn/version "0.8.3"}
-         com.cognitect/test-runner   {:git/url "https://github.com/cognitect-labs/test-runner.git"
-                                      :sha     "78d380d00e7a27f7b835bb90af37e73b20c49bcc"}
-         shoe/common                 {:git/url   "https://github.com/ComputeSoftware/shoe"
-                                      :deps/root "common"
-                                      :sha       "0e5301e7627f87c7e134816a8fd6fe186f88a90a"}}}
+ :deps
+ {org.clojure/clojure {:mvn/version "1.9.0"}
+  pjstadig/humane-test-output {:mvn/version "0.8.3"}
+  com.cognitect/test-runner
+  {:git/url "https://github.com/cognitect-labs/test-runner.git"
+   :sha "78d380d00e7a27f7b835bb90af37e73b20c49bcc"}
+  shoe/common
+  {:git/url "https://github.com/ComputeSoftware/shoe"
+   :deps/root "common"
+   :sha "60fd95ed9ffcbf79c5532a9567ccc25846e52d2a"}}}
