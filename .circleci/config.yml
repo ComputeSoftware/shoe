@@ -125,7 +125,7 @@ jobs:
           name: Test common
           command: |
             cd common
-            shoe -A :test test
+            shoe --local .. -A :test test
 
   update-task-shas:
     <<: *defaults
