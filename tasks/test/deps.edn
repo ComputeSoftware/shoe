@@ -3,6 +3,6 @@
          pjstadig/humane-test-output {:mvn/version "0.8.3"}
          com.cognitect/test-runner   {:git/url "https://github.com/cognitect-labs/test-runner.git"
                                       :sha     "78d380d00e7a27f7b835bb90af37e73b20c49bcc"}
-         clake-common                {:git/url   "https://github.com/ComputeSoftware/clake"
+         shoe-common                {:git/url   "https://github.com/ComputeSoftware/shoe"
                                       :deps/root "common"
                                       :sha       "6351aef646b3d640b110925f590a544ef90040f4"}}}

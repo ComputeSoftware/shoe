@@ -1,17 +1,17 @@
-(ns clake-tasks.repl
+(ns shoe-tasks.repl
   (:require
     [clojure.java.io :as io]
     [clojure.main :as main]
     [clojure.tools.nrepl.server :as nrepl-server]
-    [clake-common.log :as log]
-    [clake-common.task :as task])
+    [shoe-common.log :as log]
+    [shoe-common.task :as task])
   (:import (java.nio.file Files)))
 
 (defn repl
-  {:clake/cli-specs   [["-p" "--port PORT" "Port to start nREPL server on."
+  {:shoe/cli-specs   [["-p" "--port PORT" "Port to start nREPL server on."
                         :parse-fn #(Integer/parseInt %)]
                        ["-s" "--server-only" "Only start a nREPL server."]]
-   :clake/shutdown-fn (fn []
+   :shoe/shutdown-fn (fn []
                         (Files/deleteIfExists (.toPath (io/file ".nrepl-port"))))}
   [{:keys [port server-only]
     :or   {port 0}

@@ -1,11 +1,11 @@
-(ns clake-tasks.test
+(ns shoe-tasks.test
   (:refer-clojure :exclude [test])
   (:require
     [clojure.string :as str]
     [clojure.edn :as edn]
     [pjstadig.humane-test-output :as humane-test]
     [cognitect.test-runner :as test-runner]
-    [clake-common.task :as task]))
+    [shoe-common.task :as task]))
 
 (defn- parse-kw
   [s]
@@ -17,7 +17,7 @@
 
 (defn test
   "Run the project's tests."
-  {:clake/cli-specs [["-d" "--dir DIRNAME" "Name of the directory containing tests. Defaults to \"test\"."
+  {:shoe/cli-specs [["-d" "--dir DIRNAME" "Name of the directory containing tests. Defaults to \"test\"."
                       :parse-fn str
                       :assoc-fn accumulate]
                      ["-n" "--namespace SYMBOL" "Symbol indicating a specific namespace to test."

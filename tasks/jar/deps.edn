@@ -1,8 +1,8 @@
 {:deps {org.clojure/clojure      {:mvn/version "1.9.0"}
         zcaudate/hara.io.file    {:mvn/version "2.8.2"}
         zcaudate/hara.io.archive {:mvn/version "2.8.2"}
-        clake-tasks.archive      {:git/url ""}
-        clake-common             #_{:git/url   "https://github.com/ComputeSoftware/clake"
+        shoe-tasks.archive      {:git/url ""}
+        shoe-common             #_{:git/url   "https://github.com/ComputeSoftware/shoe"
                                     :deps/root "common"
                                     :sha       "6351aef646b3d640b110925f590a544ef90040f4"}
                                  {:local/root "../../common"}}}

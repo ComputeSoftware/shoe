@@ -7,9 +7,9 @@ defaults: &defaults
   environment:
     JVM_OPTS: -Xmx3200m
 
-install-local-clake: &install-local-clake
+install-local-shoe: &install-local-shoe
   run:
-    name: Install Clake locally
+    name: Install shoe locally
     command: |
       cd cli
       sudo npm link
@@ -45,7 +45,7 @@ jobs:
           command: |
             cd cli
             npx shadow-cljs release test
-            node build-test/clake-tests.js
+            node build-test/shoe-tests.js
 
   build-cli:
     <<: *defaults
@@ -78,10 +78,10 @@ jobs:
           at: scripts
 
       - run:
-          name: Move clake.js to build dir
+          name: Move shoe.js to build dir
           command: |
             mkdir cli/build
-            mv scripts/build/clake.js cli/build/clake.js
+            mv scripts/build/shoe.js cli/build/shoe.js
 
       - *configure-git
 
@@ -120,12 +120,12 @@ jobs:
       - checkout
       - attach_workspace:
           at: cli
-      - *install-local-clake
+      - *install-local-shoe
       - run:
           name: Test common
           command: |
             cd common
-            clake -A :test test
+            shoe -A :test test
 
   update-task-shas:
     <<: *defaults
@@ -133,13 +133,13 @@ jobs:
       - checkout
       - attach_workspace:
           at: cli
-      - *install-local-clake
+      - *install-local-shoe
       - *configure-git
       - run:
           name: Update SHAs
           command: |
             cd dev
-            clake dev.ci/replace-git-sha --sha $CIRCLE_SHA1
+            shoe dev.ci/replace-git-sha --sha $CIRCLE_SHA1
             cd ..
             echo "pull"
             git pull
@@ -166,8 +166,8 @@ jobs:
           command: |
             export VERSION=$(cat workspace/cli_version.txt)
             echo 'Building version' $VERSION
-            docker build --build-arg clake_version=$VERSION -t computesoftware/clake:$VERSION docker
-            docker push computesoftware/clake:$VERSION
+            docker build --build-arg shoe_version=$VERSION -t computesoftware/shoe:$VERSION docker
+            docker push computesoftware/shoe:$VERSION
 
 workflows:
   version: 2

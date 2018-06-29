@@ -1,8 +1,8 @@
 {:deps   {:aliases [:test]}
  :nrepl  {:port 7888}
  :builds {:script {:target    :node-script
-                   :main      clake-cli.core/-main
-                   :output-to "build/clake.js"}
+                   :main      shoe-cli.core/-main
+                   :output-to "build/shoe.js"}
           :test   {:target    :node-test
-                   :output-to "build-test/clake-tests.js"
+                   :output-to "build-test/shoe-tests.js"
                    :ns-regexp "-test$"}}}

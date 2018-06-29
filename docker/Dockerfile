@@ -1,8 +1,8 @@
 FROM circleci/clojure:tools-deps-node
 
-ARG clake_version
+ARG shoe_version
 
-RUN sudo npm install clake-cli@$clake_version -g
+RUN sudo npm install shoe-cli@$shoe_version -g
 
-RUN clake -v
-RUN clake test
+RUN shoe -v
+RUN shoe test

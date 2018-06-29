@@ -6,11 +6,11 @@
   (:import (java.io FilenameFilter)))
 
 ;; the reason for this nightmare is to keep the formatting of a deps.edn exactly
-;; the same and only replace the `:sha` for clake-common in a deps.edn.
-(defn replace-clake-common-sha
+;; the same and only replace the `:sha` for shoe-common in a deps.edn.
+(defn replace-shoe-common-sha
   [deps-string new-sha]
-  (let [clake-name "clake-common"
-        name-index (str/index-of deps-string clake-name)
+  (let [shoe-name "shoe-common"
+        name-index (str/index-of deps-string shoe-name)
         map-start-i (reduce (fn [i char]
                               (if (= char \{)
                                 (reduced (inc i))
@@ -35,9 +35,9 @@
          new-sha
          (subs deps-string sha-end-i (count deps-string)))))
 
-(defn clake-common-git-dep?
+(defn shoe-common-git-dep?
   [deps-string]
-  (some? (get-in (edn/read-string deps-string) [:deps 'clake-common :sha])))
+  (some? (get-in (edn/read-string deps-string) [:deps 'shoe-common :sha])))
 
 (defn task-deps-edn-paths
   [root-path]
@@ -53,31 +53,31 @@
                       (.exists (io/file current name "deps.edn")))))))))
 
 (defn replace-git-sha
-  {:clake/cli-specs [["-s" "--sha VAL" "The SHA to replace in all the tasks."]]}
+  {:shoe/cli-specs [["-s" "--sha VAL" "The SHA to replace in all the tasks."]]}
   [{:keys [sha]}]
   (assert sha ":sha not set.")
   (doseq [p (task-deps-edn-paths "..")]
     (let [deps-str (slurp p)]
-      (if (clake-common-git-dep? deps-str)
-        (spit p (replace-clake-common-sha deps-str sha))))))
+      (if (shoe-common-git-dep? deps-str)
+        (spit p (replace-shoe-common-sha deps-str sha))))))
 
 (comment
   (def deps-edn-str
     "{:deps    {org.clojure/clojure     {:mvn/version \"1.9.0\"}
            org.clojure/spec.alpha  {:mvn/version \"0.1.143\"}
            org.clojure/tools.nrepl {:mvn/version \"0.2.13\"}
-           clake-common            {:git/url   \"https://github.com/ComputeSoftware/clake\"
+           shoe-common            {:git/url   \"https://github.com/ComputeSoftware/shoe\"
                                     :deps/root \"common\"
                                     :sha       \"3e1c1ede14f47674188f2170265b44c5eb1eaaeb\"}}
  ;; override-deps does not work correctly right now so we need to use the comment approach
  ;; https://dev.clojure.org/jira/browse/TDEPS-51
- :aliases {:dev  {:override-deps {clake-common {:local/root \"../../common\"}}}
-           :repl {:main-opts [\"-m\" \"clake-tasks.repl\"]}}}")
+ :aliases {:dev  {:override-deps {shoe-common {:local/root \"../../common\"}}}
+           :repl {:main-opts [\"-m\" \"shoe-tasks.repl\"]}}}")
 
   (def deps-edn-str
     "{:deps {org.clojure/clojure         {:mvn/version \"1.9.0\"}
  pjstadig/humane-test-output {:mvn/version \"0.8.3\"}
  com.cognitect/test-runner   {:git/url \"https://github.com/cognitect-labs/test-runner.git\"
                               :sha     \"78d380d00e7a27f7b835bb90af37e73b20c49bcc\"}
- clake-common                {:local/root \"../../common\"}}}")
+ shoe-common                {:local/root \"../../common\"}}}")
   )

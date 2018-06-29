@@ -1,2 +1,2 @@
 {:aliases {:task.repl {:extra-deps {repl {:local/root "repl"}}
-                       :main-opts  ["-m" "clake-tasks.repl"]}}}
+                       :main-opts  ["-m" "shoe-tasks.repl"]}}}

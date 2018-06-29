@@ -1,8 +1,8 @@
 {
-  "name": "clake-cli",
+  "name": "shoe-cli",
   "version": "1.0.23",
   "bin": {
-    "clake": "./build/clake.js"
+    "shoe": "./build/shoe.js"
   },
   "devDependencies": {
     "shadow-cljs": "2.3.32"
