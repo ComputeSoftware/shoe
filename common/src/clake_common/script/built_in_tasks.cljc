@@ -4,6 +4,7 @@
 (def default-refer-tasks
   '{repl        clake-tasks.repl/repl
     test        clake-tasks.test/test
+    aot         clake-tasks.aot/aot
     uberjar     clake-tasks.uberjar/uberjar
     project-clj clake-tasks.project-clj/project-clj})
 
