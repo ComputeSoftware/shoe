@@ -108,7 +108,7 @@
                                        (built-in-task-deps cli-opts))}
                :aliases  (:aliases cli-opts)
                :main     "shoe-common.script.entrypoint"
-               :args     {:extra-deps {'shoe-common shoe-common-coord}
+               :args     {:extra-deps {'shoe/common shoe-common-coord}
                           :args       task-cli-args
                           :aliases    (:aliases cli-opts)}
                :cmd-opts {:stdio ["inherit" "inherit" "inherit"]}})]

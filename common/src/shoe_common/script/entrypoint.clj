@@ -33,7 +33,7 @@
   "Returns the coordinate for the built-in task with the qualified name
   `qualified-task`."
   [qualified-task common-dep]
-  (let [task-dep-name (symbol (str "shoe-tasks." (name qualified-task)))]
+  (let [task-dep-name (symbol (str "shoe.tasks/" (name qualified-task)))]
     {task-dep-name
      (cond
        (:local/root common-dep)
@@ -63,7 +63,7 @@
   {:aliases   aliases
    :deps-edn  {:deps
                (if (tasks/built-in? qualified-task)
-                 (let [common-dep (get extra-deps 'shoe-common)]
+                 (let [common-dep (get extra-deps 'shoe/common)]
                    (merge extra-deps (built-in-task-coord qualified-task common-dep)))
                  extra-deps)}
    :eval-code `[(require 'shoe-common.task)
