@@ -52,6 +52,10 @@
   [r]
   (not (status-success? r)))
 
+(defn classpath-error?
+  [r]
+  (some? (re-find #"Error building classpath\." (or (:err r) ""))))
+
 #?(:clj
    ;; we need to write out own shell function instead of Clojure's because of
    ;; https://dev.clojure.org/jira/browse/CLJ-959

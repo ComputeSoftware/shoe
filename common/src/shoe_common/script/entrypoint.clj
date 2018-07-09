@@ -110,7 +110,11 @@
             ;; stop task execution if one of the tasks fails with a non-zero exit
             (if (shell/status-success? result)
               (recur (rest parsed-args))
-              (task/exit (:exit result) (:err result))))
+              (task/exit (:exit result)
+                         (if (shell/classpath-error? result)
+                           (str "Error building classpath for task " task ".\n"
+                                (:err result))
+                           (:err result)))))
           (task/exit true)))
       parsed-args)))
 
