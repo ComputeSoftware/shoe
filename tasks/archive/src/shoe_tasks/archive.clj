@@ -1,7 +1,6 @@
 (ns shoe-tasks.archive
   (:require
-    [hara.io.file :as fs]
-    [hara.io.archive :as archive]
+    [shoe-common.fs :as fs]
     [shoe-common.log :as log]))
 
 (defn archive
@@ -15,4 +14,4 @@
   (when (fs/exists? out)
     (log/info out "exists. Overwriting."))
   (fs/delete out)
-  (archive/archive out in))
+  (fs/archive in out))

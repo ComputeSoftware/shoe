@@ -3,8 +3,7 @@
     [clojure.edn :as edn]
     [clojure.string :as str]
     [clojure.java.io :as io]
-    [hara.io.file :as fs]
-    [hara.io.archive :as archive]
+    [shoe-common.fs :as fs]
     [shoe-common.log :as log]
     [shoe-common.shell :as shell]
     [shoe-common.util :as util]))
@@ -42,33 +41,29 @@
 
 (defmethod copy-source :directory
   [src dest]
-  (let [all-files (keys (fs/list src {:recursive true
-                                      :exclude   [fs/directory?]}))
+  (let [all-files (fs/list src {:filter-fn (fn [path]
+                                             (and (fs/file? path)
+                                                  (not (excluded? path))))})
         source-dest (map (fn [source-path]
                            {:source source-path
                             :dest   (fs/path dest (fs/relativize src source-path))})
                          all-files)]
     (doseq [{:keys [source dest]} source-dest]
-      (fs/copy source dest {:exclude [excluded?]}))))
+      (fs/copy source dest))))
 
 (defmethod copy-source :jar
   [src dest]
-  (let [entries-to-extract (filter (fn [jar-path]
-                                     ;; remove the starting / from the jar paths
-                                     (and (not (fs/directory? jar-path))
-                                          (-> jar-path str (subs 1) (excluded?) (not))))
-                                   (archive/list src))]
-    ;; for some reason the extract function return value needs to be evaluated in
-    ;; in order for the operation to execute. yuck.
-    (doall (archive/extract src dest entries-to-extract))))
+  (fs/extract-archive src dest {:filter-fn
+                                (fn [jar-path]
+                                  ;; remove the starting / from the jar paths
+                                  (and (fs/file? jar-path)
+                                       (-> jar-path str (subs 1) (excluded?) (not))))}))
 
 (defn merge-edn-files
   [target-path f1 f2]
-  (with-open [f1-reader (fs/reader f1)
-              f2-reader (fs/reader f2)]
-    (spit target-path
-          (merge (edn/read-string (slurp f1-reader))
-                 (edn/read-string (slurp f2-reader))))))
+  (spit target-path
+        (merge (edn/read-string (slurp f1))
+               (edn/read-string (slurp f2)))))
 
 (defn merge-files
   [existing-path new-path]
@@ -80,8 +75,7 @@
 
 (defn move-source-files
   [source-dir target-dir]
-  (let [files (keys (fs/list source-dir {:recursive true
-                                         :exclude   [fs/directory?]}))]
+  (let [files (fs/list source-dir {:filter-fn fs/file?})]
     (doseq [path files]
       (let [target-path (fs/path target-dir (fs/relativize source-dir path))]
         (if (fs/exists? target-path)
@@ -94,8 +88,9 @@
   [classpath-vec target]
   (let [temp-dirs (reduce (fn [acc src]
                             (conj acc {:source src
-                                       :dest   (fs/create-tmpdir)}))
+                                       :dest   (fs/create-temp-directory "shoe")}))
                           [] classpath-vec)]
+
     ;; copy all source files to temporary directories
     (doseq [{:keys [source dest]} temp-dirs]
       (copy-source source dest))
@@ -105,9 +100,9 @@
 
 (defn libdir
   {:shoe/cli-specs [["-o" "--out PATH" "Path to output the libs to."
-                      :validate-fn (fn [path]
-                                     (.exists (io/file path)))
-                      :default "libs"]]}
+                     :validate-fn (fn [path]
+                                    (.exists (io/file path)))
+                     :default "libs"]]}
   [{:keys [out]}]
   (let [cp-vec (util/parse-classpath-string (shell/classpath-string-from-clj))]
     (explode-classpath cp-vec out)))
