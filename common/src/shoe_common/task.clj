@@ -40,6 +40,11 @@
    (when (.exists (io/file path))
      (normalize-config (edn/read-string (slurp path))))))
 
+(defn task-cli-opts
+  [qualified-task]
+  (when-let [v (resolve qualified-task)]
+    (:shoe/cli-specs (meta v))))
+
 (defn qualify-task
   "Returns a qualified symbol pointing to the task function or `nil` if
   `task-name` could not be qualified. First tries to qualify the task via a
