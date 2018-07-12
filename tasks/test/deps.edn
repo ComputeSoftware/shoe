@@ -8,4 +8,4 @@
   shoe/common
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "common"
-   :sha "6adeaef9c65c87cdf9f15331c401263f2f820925"}}}
+   :sha "844cc81904b41eb6084aa080f666d0916b878c1d"}}}
