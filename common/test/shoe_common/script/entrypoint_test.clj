@@ -45,7 +45,7 @@
 (deftest built-in-task-coord-test
   (let [task-coord (fn [common-coord]
                      (-> (enter/built-in-task-coord 'shoe-task.repl/repl common-coord)
-                         (get 'shoe-tasks.repl)))]
+                         (get 'shoe.tasks/repl)))]
     (is (str/ends-with? (:local/root (task-coord {:local/root "."}))
                         "/tasks/repl"))
     (is (= "sha"

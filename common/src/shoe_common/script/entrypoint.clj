@@ -40,7 +40,7 @@
        ;; we are passed the location of the /common folder
        ;; and need to determine the path for the task dependency
        {:local/root (-> (:local/root common-dep)
-                        (fs/path)
+                        (fs/real-path)
                         (fs/parent)
                         (fs/resolve (fs/path "tasks" (name qualified-task)))
                         (str))}
