@@ -2,12 +2,14 @@
   (:refer-clojure :exclude [resolve list])
   (:require
     [clojure.edn :as edn]
-    [clojure.java.io :as io])
-  (:import (java.io FileNotFoundException)
+    [clojure.java.io :as io]
+    [clojure.string :as str])
+  (:import (java.io FileNotFoundException File)
            (java.nio.file Files OpenOption Path Paths LinkOption FileVisitor FileVisitResult CopyOption StandardCopyOption FileSystems FileSystem)
            (java.net URI)
            (java.nio.file.attribute FileAttribute)
-           (java.util Map)))
+           (java.util Map)
+           (java.util.jar JarOutputStream JarEntry Manifest Attributes$Name)))
 
 (def cwd (System/getProperty "user.dir"))
 
@@ -20,6 +22,18 @@
   ([path & paths]
    (let [paths (map str paths)]
      (Paths/get (str path) (into-array String paths)))))
+
+(defn new-output-stream
+  [p]
+  (Files/newOutputStream (path p) (make-array OpenOption 0)))
+
+(defn new-input-stream
+  [p]
+  (Files/newInputStream (path p) (make-array OpenOption 0)))
+
+(defn to-file
+  [p]
+  (.toFile (path p)))
 
 (defn exists?
   [p]
@@ -105,6 +119,10 @@
                        (add-path! file))})
      (persistent! fs-list))))
 
+(defn list-files
+  [p]
+  (list p {:filter-fn file?}))
+
 (defn delete
   [path]
   (walk path
@@ -182,6 +200,42 @@
           (mapcat list)
           (.getRootDirectories zip-fs))))
 
+(defn jar-manifest
+  "Returns a `Manifest` object given a map of manifest attributes."
+  [manifest]
+  (let [m (Manifest.)
+        attrs (.getMainAttributes m)]
+    (.put attrs Attributes$Name/MANIFEST_VERSION "1.0")
+    (.put attrs Attributes$Name/MAIN_CLASS (-> (:main manifest)
+                                               str
+                                               (.replaceAll "-" "_")))
+    ;; put all other attributes in manifest
+    (doseq [[k v] (dissoc manifest :main)]
+      (.put attrs (Attributes$Name. (name k)) v))
+    m))
+
+(defn jar
+  ([input-path output-path]
+   (jar input-path output-path))
+  ([input-path output-path manifest]
+    ;; ensure output-path parent dirs exist
+    ;(create-directories (parent output-path))
+
+   (with-open [jar-os (if manifest
+                        (JarOutputStream. (new-output-stream output-path) (jar-manifest manifest))
+                        (JarOutputStream. (new-output-stream output-path)))]
+     (doseq [path ^Path (list-files input-path)]
+       ;; zips & jars have a special format they must adhere to
+       ;; see https://stackoverflow.com/questions/1281229/how-to-use-jaroutputstream-to-create-a-jar-file
+       (let [jar-path (-> (relativize input-path path)
+                          (str)
+                          (str/replace "\\" "/"))
+             jar-entry (doto (JarEntry. jar-path)
+                         (.setTime (.lastModified ^File (to-file path))))]
+         (.putNextEntry jar-os jar-entry)
+         (Files/copy path jar-os)
+         (.closeEntry jar-os))))))
+
 (defn archive
   [input-dir output-path]
   (with-open [zip-fs (create-zip-filesystem output-path {:create true})]
@@ -190,7 +244,8 @@
               (let [zip-path (.getPath zip-fs (str (relativize input-dir p)) (make-array String 0))]
                 (create-directories (parent zip-path))
                 (nio-copy p zip-path {:overwrite? true})
-                zip-path)) (list input-dir {:filter-fn file?})))))
+                zip-path))
+            (list input-dir {:filter-fn file?})))))
 
 (defn extract-archive
   ([archive-path extract-to] (extract-archive archive-path extract-to {}))
@@ -214,10 +269,8 @@
 (extend Path
   io/IOFactory
   (assoc io/default-streams-impl
-    :make-input-stream (fn [x opts]
-                         (Files/newInputStream x (make-array OpenOption 0)))
-    :make-output-stream (fn [x opts]
-                          (Files/newOutputStream x (make-array OpenOption 0)))))
+    :make-input-stream (fn [x opts] (new-input-stream x))
+    :make-output-stream (fn [x opts] (new-output-stream x))))
 
 (defn parse-edn-file-at
   "Returns EDN data `slurp`'ed from `path`."
