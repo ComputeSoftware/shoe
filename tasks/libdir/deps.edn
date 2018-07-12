@@ -1,4 +1,6 @@
-{:deps {org.clojure/clojure {:mvn/version "1.9.0"}
-        shoe/common         {:git/url   "https://github.com/ComputeSoftware/shoe"
-                             :deps/root "common"
-                             :sha       "0e5301e7627f87c7e134816a8fd6fe186f88a90a"}}}
+{:deps
+ {org.clojure/clojure {:mvn/version "1.9.0"}
+  shoe/common
+  {:git/url "https://github.com/ComputeSoftware/shoe"
+   :deps/root "common"
+   :sha "844cc81904b41eb6084aa080f666d0916b878c1d"}}}

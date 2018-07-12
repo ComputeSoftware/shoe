@@ -35,6 +35,14 @@
   [p]
   (.toFile (path p)))
 
+(defn absolute-path
+  [p]
+  (.toAbsolutePath (path p)))
+
+(defn real-path
+  [p]
+  (.toRealPath (path p) (make-array LinkOption 0)))
+
 (defn exists?
   [p]
   (Files/exists (path p) (make-array LinkOption 0)))
