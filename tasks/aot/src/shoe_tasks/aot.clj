@@ -33,13 +33,13 @@
     (set (ns.find/find-namespaces (map io/file project-paths)))))
 
 (defn aot
-  {:shoe/cli-specs [["-t" "--target-path PATH" "Path for compilation."
+  {:shoe/cli-specs [["-t" "--target PATH" "Path for compilation."
                       :default "target"]
                      ["-a" "--aot NAMESPACES" "Comma separated list of namespaces to compile."
                       :parse-fn (fn [s] (map symbol (str/split s #",")))]
                      [nil "--all" "Set to true to AOT all project files."]]}
-  [{:keys [aot all target-path]}]
-  (let [compile-path (io/file target-path "classes")
+  [{:keys [aot all target]}]
+  (let [compile-path (io/file target "classes")
         namespaces-to-compile (set (if all (namespaces-in-project) aot))]
     (if-not (empty? namespaces-to-compile)
       (do

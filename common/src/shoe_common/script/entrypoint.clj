@@ -6,17 +6,17 @@
     [clojure.tools.cli :as cli]
     [shoe-common.shell :as shell]
     [shoe-common.task :as task]
+    [shoe-common.fs :as fs]
     [shoe-common.script.built-in-tasks :as tasks])
-  (:import (java.nio.file Paths)
-           (java.io FileNotFoundException)))
+  (:import (java.io FileNotFoundException)))
 
 (defn lookup-task-cli-specs
   "Returns the CLI spec for `task-name-str` if it is available."
   [qualified-task]
   (try
     (require (symbol (namespace qualified-task)))
-    (if-let [v (resolve qualified-task)]
-      (conj (:shoe/cli-specs (meta v)) tasks/cli-task-help-option)
+    (if-let [cli-opts (task/task-cli-opts qualified-task)]
+      (conj cli-opts tasks/cli-task-help-option)
       (task/exit false (str "Could not resolve task " qualified-task ".")))
     (catch FileNotFoundException ex
       (task/exit false (format "Could not require %s. Is it on the classpath?" (namespace qualified-task))))))
@@ -33,23 +33,17 @@
   "Returns the coordinate for the built-in task with the qualified name
   `qualified-task`."
   [qualified-task common-dep]
-  (let [task-dep-name (symbol (str "shoe-tasks." (name qualified-task)))]
+  (let [task-dep-name (symbol (str "shoe.tasks/" (name qualified-task)))]
     {task-dep-name
      (cond
        (:local/root common-dep)
-       {:local/root (.getAbsolutePath
-                      ;; we are passed the location of the /common folder
-                      ;; and need to determine the absolute path for the root
-                      ;; of the project
-                      (io/file (-> (:local/root common-dep)
-                                   (Paths/get (make-array String 0))
-                                   (.toAbsolutePath)
-                                   (.normalize)
-                                   (.toFile)
-                                   (.getParentFile)
-                                   (.getAbsolutePath))
-                               "tasks"
-                               (name qualified-task)))}
+       ;; we are passed the location of the /common folder
+       ;; and need to determine the path for the task dependency
+       {:local/root (-> (:local/root common-dep)
+                        (fs/real-path)
+                        (fs/parent)
+                        (fs/resolve (fs/path "tasks" (name qualified-task)))
+                        (str))}
        (:git/url common-dep)
        {:git/url   "https://github.com/ComputeSoftware/shoe"
         :deps/root (str "tasks/" (name qualified-task))
@@ -63,7 +57,7 @@
   {:aliases   aliases
    :deps-edn  {:deps
                (if (tasks/built-in? qualified-task)
-                 (let [common-dep (get extra-deps 'shoe-common)]
+                 (let [common-dep (get extra-deps 'shoe/common)]
                    (merge extra-deps (built-in-task-coord qualified-task common-dep)))
                  extra-deps)}
    :eval-code `[(require 'shoe-common.task)
@@ -110,7 +104,11 @@
             ;; stop task execution if one of the tasks fails with a non-zero exit
             (if (shell/status-success? result)
               (recur (rest parsed-args))
-              (task/exit (:exit result) (:err result))))
+              (task/exit (:exit result)
+                         (if (shell/classpath-error? result)
+                           (str "Error building classpath for task " task ".\n"
+                                (:err result))
+                           (:err result)))))
           (task/exit true)))
       parsed-args)))
 

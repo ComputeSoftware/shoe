@@ -6,7 +6,7 @@
   shoe/common
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "common"
-   :sha "60fd95ed9ffcbf79c5532a9567ccc25846e52d2a"}}
+   :sha "844cc81904b41eb6084aa080f666d0916b878c1d"}}
  :aliases
- {:dev {:override-deps {shoe-common {:local/root "../../common"}}}
+ {:dev {:override-deps {shoe/common {:local/root "../../common"}}}
   :repl {:main-opts ["-m" "shoe-tasks.repl"]}}}

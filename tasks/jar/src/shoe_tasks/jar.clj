@@ -1,48 +1,54 @@
 (ns shoe-tasks.jar
   (:require
-    [hara.io.file :as fs]
-    [hara.io.archive :as archive]
-    [shoe-common.log :as log]))
+    [clojure.string :as str]
+    [clojure.java.io :as io]
+    [shoe-common.log :as log]
+    [shoe-common.fs :as fs]
+    [shoe-common.cli-utils :as cli-utils]))
 
-(defn generate-manifest-string
-  [{:keys [manifest-version built-by created-by build-jdk main-class]
-    :or   {manifest-version "1.0"
-           built-by         (System/getProperty "user.name")
-           created-by       "shoe"
-           build-jdk        (System/getProperty "java.version")}}]
-  ;; NOTE: A manifest file MUST end with a newline
-  ;; TODO: write function to transform map into this format
-  (format (str "Manifest-Version: %s\n"
-               "Built-By: %s\n"
-               "Created-By: %s\n"
-               "Build-Jdk: %s\n"
-               "Main-Class: %s\n")
-          manifest-version
-          built-by
-          created-by
-          build-jdk
-          main-class))
+(defn get-project-paths
+  []
+  (:paths (fs/get-cwd-deps-edn)))
 
-(defn write-manifest
-  [out-dir main]
-  (spit (str (fs/path out-dir "META-INF/MANIFEST.MF"))
-        (generate-manifest-string {:main-class (str (munge main))})))
+(def default-manifest
+  {:built-by   (System/getProperty "user.name")
+   :created-by "Shoe"
+   :build-jdk  (System/getProperty "java.version")})
+
+(defn manifest-map
+  [manifest]
+  (merge default-manifest manifest))
+
+(defn copy-project-paths
+  [copy-to-path]
+  (let [project-paths (get-project-paths)
+        _ (when (empty? project-paths) (log/warn ":paths is empty."))]
+    ;; put project paths into jar dir
+    (doseq [path project-paths]
+      (fs/copy path copy-to-path))
+    ;; TODO: write pom.xml
+    ))
+
+(defn write-jar-contents-directory
+  [jar-contents-path]
+  ;; TODO: write pom.xml
+  (copy-project-paths jar-contents-path))
 
 (defn jar
+  "Build a jar file from the project."
   {:shoe/cli-specs [["-t" "--target PATH" "Target path for output."
-                      :default "target"]
-                     ["-m" "--main NS" "The main ns for your project. Used when writing the manifest."]
-                     ["-n" "--name STR" "The name of the outputted jar."
-                      :default "project.jar"]]}
-  [{:keys    [target main]
-    jar-name :name}]
-  (let [jar-contents-path (fs/path target "jar-contents")
-        jar-path (fs/path target jar-name)]
-    (write-manifest jar-contents-path main)
-    (log/info "Creating" jar-name "...")
-    (when (fs/exists? jar-path)
-      (log/info jar-path "exists. Overwriting."))
-    (fs/delete jar-path)
-    (archive/archive jar-path jar-contents-path)
+                     :default "target"]
+                    ["-m" "--main NS" "The main ns for your project. Used when writing the manifest."]
+                    ["-n" "--name STR" "The name of the outputted jar."
+                     :default "project.jar"]]}
+  [{:keys    [target]
+    jar-name :name
+    :as      task-opts}]
+  (let [jar-contents-path (fs/path target jar-name)
+        final-jar-path (fs/path target jar-name)]
+    ;; put jar contents into directory
+    (write-jar-contents-directory jar-contents-path)
+    ;; write jar
+    (fs/jar jar-contents-path final-jar-path (manifest-map {:main (:main task-opts)}))
     (log/info "Cleaning up ...")
     (fs/delete jar-contents-path)))

@@ -40,6 +40,11 @@
    (when (.exists (io/file path))
      (normalize-config (edn/read-string (slurp path))))))
 
+(defn task-cli-opts
+  [qualified-task]
+  (when-let [v (resolve qualified-task)]
+    (:shoe/cli-specs (meta v))))
+
 (defn qualify-task
   "Returns a qualified symbol pointing to the task function or `nil` if
   `task-name` could not be qualified. First tries to qualify the task via a
@@ -80,6 +85,10 @@
       :else {:opts         options
              :default-opts (cli/get-default-options cli-specs)})))
 
+(defn max-number-of-args-for-var
+  [v]
+  (apply max (map count (:arglists (meta v)))))
+
 (defn execute-task-handler
   [qualified-task-name args]
   (let [task-var (resolve qualified-task-name)
@@ -87,9 +96,14 @@
         {:keys [opts default-opts] :as r} (validate-args args (:shoe/cli-specs meta-map) (:doc meta-map))]
     (shell/system-exit
       (if-not (exit? r)
-        (let [task-result (@task-var (merge default-opts
-                                            (task-options (load-config) qualified-task-name)
-                                            opts))]
+        (let [task-result (let [arg-count (max-number-of-args-for-var task-var)]
+                            ;; if the function takes no args then we call it with no args
+                            ;; otherwise we default to a call passing one arg.
+                            (if (zero? arg-count)
+                              (@task-var)
+                              (@task-var (merge default-opts
+                                                (task-options (load-config) qualified-task-name)
+                                                opts))))]
           (if (exit? task-result)
             task-result
             (exit true)))

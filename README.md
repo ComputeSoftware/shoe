@@ -1,4 +1,4 @@
-# shoe
+# Shoe
 
 [![CircleCI](https://circleci.com/gh/ComputeSoftware/shoe.svg?style=svg)](https://circleci.com/gh/ComputeSoftware/shoe)
 
@@ -53,7 +53,7 @@ $ clojure -A:repl --help
 
 At this point the aformentioned problem should be clear -- we need a way to minimize the amount of configuration and to set default options for tasks within the scope of a project. This is where the shoe CLI comes in. 
 
-## shoe CLI Usage
+## Shoe CLI Usage
 
 The shoe CLI is written in ClojureScript and available as a NPM module.
 
