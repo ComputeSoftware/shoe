@@ -3,6 +3,7 @@
     [shoe-common.fs :as fs]
     [shoe-common.task :as task]
     [shoe-common.cli-utils :as cli-utils]
+    [shoe-common.log :as log]
     [shoe-tasks.jar :as jar-task]
     [shoe-tasks.libdir :as libdir-task]
     [shoe-tasks.aot :as aot-task]))
@@ -33,6 +34,7 @@
     (jar-task/write-jar-contents-directory jar-contents-dir)
 
     ;; create the JAR
+    (log/info "Creating jar...")
     (fs/jar jar-contents-dir (fs/path (:target task-opts) (:name task-opts))
             (merge jar-task/default-manifest
                    {:main (:main task-opts)}))

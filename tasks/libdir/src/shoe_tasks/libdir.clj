@@ -71,7 +71,7 @@
     (= "data_readers.clj" (file-name existing-path))
     (merge-edn-files existing-path existing-path new-path)
     ;(re-find #"^META-INF/services/" (trim-beginning-slash new-path))
-    :else (fs/move new-path existing-path)))
+    :else (fs/move new-path existing-path {:overwrite? true})))
 
 (defn move-source-files
   [source-dir target-dir]
@@ -109,4 +109,5 @@
       (log/info out "already exists. Overwriting.")
       (fs/delete out))
     (fs/create-directories out)
+    (log/info "Copying classpath resources...")
     (explode-classpath cp-vec out)))
