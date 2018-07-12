@@ -75,12 +75,12 @@
 
 (defn move-source-files
   [source-dir target-dir]
-  (let [files (fs/list source-dir {:filter-fn fs/file?})]
-    (doseq [path files]
-      (let [target-path (fs/path target-dir (fs/relativize source-dir path))]
+  (let [source-files (fs/list source-dir {:filter-fn fs/file?})]
+    (doseq [source-path source-files]
+      (let [target-path (fs/path target-dir (fs/relativize source-dir source-path))]
         (if (fs/exists? target-path)
-          (merge-files target-path path)
-          (fs/move path target-path))))))
+          (merge-files target-path source-path)
+          (fs/move source-path target-path))))))
 
 (defn explode-classpath
   "Creates a directory containing all files on the classpath. `classpath-vec is
@@ -106,8 +106,8 @@
   [{:keys [out]}]
   (let [cp-vec (util/parse-classpath-string (shell/classpath-string-from-clj))]
     #_(when (fs/exists? out)
-      (log/info out "already exists. Overwriting.")
-      (fs/delete out))
+        (log/info out "already exists. Overwriting.")
+        (fs/delete out))
     (fs/create-directories out)
     (log/info "Copying classpath resources...")
     (explode-classpath cp-vec out)))
