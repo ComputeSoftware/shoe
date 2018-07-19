@@ -8,7 +8,8 @@
 (defn copy-resources
   [cp-vec target-dir]
   (doseq [path cp-vec]
-    (fs/copy path target-dir {:recursive? true})))
+    (fs/copy path target-dir {:recursive?       true
+                              :copy-attributes? true})))
 
 (defn libdir
   {:shoe/cli-specs [["-o" "--out PATH" "Path to output the libs to."
