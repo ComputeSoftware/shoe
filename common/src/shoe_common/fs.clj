@@ -43,6 +43,10 @@
   [p]
   (.toRealPath (path p) (make-array LinkOption 0)))
 
+(defn file-name
+  [p]
+  (.getFileName (path p)))
+
 (defn exists?
   [p]
   (Files/exists (path p) (make-array LinkOption 0)))
@@ -111,6 +115,12 @@
     (when (not (exists? p))
       (Files/createDirectories p (make-array FileAttribute 0)))))
 
+(defn ensure-parent-dirs
+  [p]
+  (let [parent (-> (path p) absolute-path parent)]
+    (when-not (exists? parent)
+      (create-directories parent))))
+
 (defn list
   ([p] (list p nil))
   ([p {:keys [filter-fn]
@@ -168,8 +178,14 @@
                 (nio-copy dir new-dir {:overwrite? overwrite?}))))
           :visit-file
           (fn [file attrs]
-            (let [new-file-path (resolve target (relativize source file))]
-              (create-directories (parent new-file-path))
+            (let [relative-path (let [rel (relativize source file)]
+                                  ;; if source & file are the same then we copy using the
+                                  ;; file's name.
+                                  (if (= "" (str rel))
+                                    (file-name file)
+                                    rel))
+                  new-file-path (resolve target relative-path)]
+              (ensure-parent-dirs new-file-path)
               (nio-copy file new-file-path {:overwrite? overwrite?})))})))
 
 (defn move
@@ -182,7 +198,7 @@
             (fn [file _]
               (let [new-file-path (resolve target (relativize source file))]
                 ;; ensure parent dirs exist
-                (create-directories (parent new-file-path))
+                (ensure-parent-dirs new-file-path)
                 (Files/move file new-file-path (copy-options opts))))
             :post-visit-directory
             (fn [dir _]
