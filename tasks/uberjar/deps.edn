@@ -5,16 +5,16 @@
   shoe/common
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "common"
-   :sha "ded72fa73eb327cab03dac96a8cd811662858c5a"}
+   :sha "cd7cd5a7675fe2ab8141e9aba98cef18776fafe2"}
   shoe.tasks/jar
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "tasks/jar"
-   :sha "ded72fa73eb327cab03dac96a8cd811662858c5a"}
+   :sha "cd7cd5a7675fe2ab8141e9aba98cef18776fafe2"}
   shoe.tasks/libdir
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "tasks/libdir"
-   :sha "ded72fa73eb327cab03dac96a8cd811662858c5a"}
+   :sha "cd7cd5a7675fe2ab8141e9aba98cef18776fafe2"}
   shoe.tasks/aot
   {:git/url "https://github.com/ComputeSoftware/shoe"
    :deps/root "tasks/aot"
-   :sha "ded72fa73eb327cab03dac96a8cd811662858c5a"}}}
+   :sha "cd7cd5a7675fe2ab8141e9aba98cef18776fafe2"}}}
